@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Icons</title>
+</head>
+<body>
+    <canvas id="canvas" width="128" height="128" style="border: 1px solid #ccc;"></canvas>
+    <br><br>
+    <button onclick="downloadIcon(16)">Download 16x16</button>
+    <button onclick="downloadIcon(32)">Download 32x32</button>
+    <button onclick="downloadIcon(48)">Download 48x48</button>
+    <button onclick="downloadIcon(128)">Download 128x128</button>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // 清除画布
+            ctx.clearRect(0, 0, size, size);
+
+            // 背景渐变
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#007cff');
+            gradient.addColorStop(1, '#0056cc');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 1, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // 添加边框
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // 绘制设计稿图标（更精美的设计）
+            ctx.fillStyle = 'white';
+            const margin = size * 0.18;
+            const rectWidth = size - margin * 2;
+            const rectHeight = rectWidth * 0.75;
+            const rectX = margin;
+            const rectY = (size - rectHeight) / 2;
+
+            // 主矩形（带圆角）
+            ctx.beginPath();
+            ctx.roundRect(rectX, rectY, rectWidth, rectHeight, size * 0.03);
+            ctx.fill();
+
+            // 添加阴影效果
+            ctx.fillStyle = 'rgba(0, 124, 255, 0.2)';
+            ctx.beginPath();
+            ctx.roundRect(rectX + 1, rectY + 1, rectWidth, rectHeight, size * 0.03);
+            ctx.fill();
+
+            // 图片预览区域
+            ctx.fillStyle = '#f0f8ff';
+            const previewMargin = size * 0.05;
+            ctx.beginPath();
+            ctx.roundRect(
+                rectX + previewMargin,
+                rectY + previewMargin,
+                rectWidth - previewMargin * 2,
+                rectHeight * 0.6,
+                size * 0.02
+            );
+            ctx.fill();
+
+            // 图片图标
+            ctx.fillStyle = '#007cff';
+            const iconSize = size * 0.08;
+            ctx.beginPath();
+            ctx.arc(
+                rectX + rectWidth * 0.3,
+                rectY + rectHeight * 0.3,
+                iconSize,
+                0,
+                2 * Math.PI
+            );
+            ctx.fill();
+
+            // 山峰图标
+            ctx.beginPath();
+            ctx.moveTo(rectX + rectWidth * 0.5, rectY + rectHeight * 0.45);
+            ctx.lineTo(rectX + rectWidth * 0.6, rectY + rectHeight * 0.25);
+            ctx.lineTo(rectX + rectWidth * 0.7, rectY + rectHeight * 0.35);
+            ctx.lineTo(rectX + rectWidth * 0.8, rectY + rectHeight * 0.45);
+            ctx.lineTo(rectX + rectWidth * 0.5, rectY + rectHeight * 0.45);
+            ctx.fill();
+
+            // 底部控制条
+            ctx.fillStyle = '#007cff';
+            ctx.beginPath();
+            ctx.roundRect(
+                rectX + previewMargin,
+                rectY + rectHeight * 0.7,
+                rectWidth - previewMargin * 2,
+                rectHeight * 0.2,
+                size * 0.02
+            );
+            ctx.fill();
+
+            // 控制点
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < 3; i++) {
+                const dotX = rectX + rectWidth * (0.3 + i * 0.2);
+                const dotY = rectY + rectHeight * 0.8;
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, size * 0.015, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+        
+        function downloadIcon(size) {
+            drawIcon(size);
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // 初始绘制
+        drawIcon(128);
+    </script>
+</body>
+</html>

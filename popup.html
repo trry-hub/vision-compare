@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .header h1 {
+      font-size: 18px;
+      margin: 0 0 5px 0;
+      color: #333;
+    }
+    
+    .header p {
+      font-size: 12px;
+      color: #666;
+      margin: 0;
+    }
+    
+    .upload-section {
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    
+    .upload-section:hover {
+      border-color: #007cff;
+    }
+    
+    .upload-section.dragover {
+      border-color: #007cff;
+      background-color: #f0f8ff;
+    }
+    
+    .upload-text {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .btn {
+      background: #007cff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    
+    .btn:hover {
+      background: #0056cc;
+    }
+    
+    .shortcuts {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .shortcuts h3 {
+      font-size: 14px;
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    
+    .shortcut-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    
+    .shortcut-key {
+      font-family: monospace;
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Design Inspector</h1>
+    <p>前端重构和视觉走查辅助工具</p>
+  </div>
+  
+  <div class="upload-section" id="uploadSection">
+    <div class="upload-text">上传设计稿</div>
+    <button class="btn" id="uploadBtn">选择图片</button>
+    <input type="file" class="file-input" id="fileInput" accept="image/*">
+    <div style="margin-top:8px; font-size:12px; color:#888;">支持：拖拽图片、粘贴剪贴板（Ctrl/Cmd+V）</div>
+  </div>
+
+  <div id="exitSection" style="margin-bottom: 20px; text-align: center; display: none;">
+    <button class="btn" id="exitBtn" style="background: #ff4444;">退出插件</button>
+  </div>
+  
+  <div class="shortcuts">
+    <h3>快捷键</h3>
+    <div class="shortcut-item">
+      <span>显示/隐藏图片</span>
+      <span class="shortcut-key">H</span>
+    </div>
+    <div class="shortcut-item">
+      <span>显示/隐藏工具栏</span>
+      <span class="shortcut-key">F</span>
+    </div>
+    <div class="shortcut-item">
+      <span>冻结/解冻图片</span>
+      <span class="shortcut-key">D</span>
+    </div>
+    <div class="shortcut-item">
+      <span>显示/隐藏手柄</span>
+      <span class="shortcut-key">R</span>
+    </div>
+    <div class="shortcut-item">
+      <span>设置透明度</span>
+      <span class="shortcut-key">0-9</span>
+    </div>
+    <div class="shortcut-item">
+      <span>移动图片</span>
+      <span class="shortcut-key">←→</span>
+    </div>
+    <div class="shortcut-item">
+      <span>重置</span>
+      <span class="shortcut-key">Alt+0</span>
+    </div>
+    <div class="shortcut-item">
+      <span>原图大小</span>
+      <span class="shortcut-key">Alt+1</span>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
