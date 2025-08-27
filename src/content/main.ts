@@ -536,7 +536,6 @@ class VisionCheckManager {
     document.addEventListener('mousemove', this.handleMouseMove)
     document.addEventListener('mouseup', this.handleMouseUp)
     document.addEventListener('keydown', this.handleKeydown)
-    window.addEventListener('beforeunload', this.saveState.bind(this))
   }
 
   private handleMouseMove = (e: MouseEvent): void => {
@@ -805,96 +804,102 @@ class VisionCheckManager {
     }
   }
 
-  private async saveState(): Promise<void> {
+  private saveState(): void {
     try {
-      if (!chrome.runtime?.id) return
-
-      const stateKey = `vision-compare-${window.location.hostname}`
+      const stateKey = `vision-compare-locked-${window.location.href}-${Date.now()}`
       const stateData = {
         ...this.state,
         imageData: this.imageElement?.src || '',
         timestamp: Date.now()
       }
 
-      await chrome.storage.local.set({ [stateKey]: stateData })
+      sessionStorage.setItem(stateKey, JSON.stringify(stateData))
+      // 保存当前使用的 key，用于后续清理
+      sessionStorage.setItem('vision-compare-current-locked-key', stateKey)
     } catch (error) {
       // Failed to save state
     }
   }
 
-  private async clearState(): Promise<void> {
+  private clearState(): void {
     try {
-      if (!chrome.runtime?.id) return
-
-      const stateKey = `vision-compare-${window.location.hostname}`
-      await chrome.storage.local.remove([stateKey])
+      const currentKey = sessionStorage.getItem('vision-compare-current-locked-key')
+      if (currentKey) {
+        sessionStorage.removeItem(currentKey)
+        sessionStorage.removeItem('vision-compare-current-locked-key')
+      }
     } catch (error) {
       // Failed to clear state
     }
   }
 
-  private async saveFreezedState(): Promise<void> {
+  private saveFreezedState(): void {
     try {
-      if (!chrome.runtime?.id) return
-
-      const stateKey = `vision-compare-freezed-${window.location.hostname}`
+      const stateKey = `vision-compare-freezed-${window.location.href}-${Date.now()}`
       const imageData = this.imageElement?.src || ''
       const stateData = {
         ...this.state,
         imageData,
         timestamp: Date.now()
       }
-      await chrome.storage.local.set({ [stateKey]: stateData })
+      sessionStorage.setItem(stateKey, JSON.stringify(stateData))
+      // 保存当前使用的 key，用于后续清理
+      sessionStorage.setItem('vision-compare-current-freezed-key', stateKey)
     } catch (error) {
       // Failed to save freezed state
     }
   }
 
-  private async clearFreezedState(): Promise<void> {
+  private clearFreezedState(): void {
     try {
-      if (!chrome.runtime?.id) return
-
-      const stateKey = `vision-compare-freezed-${window.location.hostname}`
-      await chrome.storage.local.remove([stateKey])
+      const currentKey = sessionStorage.getItem('vision-compare-current-freezed-key')
+      if (currentKey) {
+        sessionStorage.removeItem(currentKey)
+        sessionStorage.removeItem('vision-compare-current-freezed-key')
+      }
     } catch (error) {
       // Failed to clear freezed state
     }
   }
 
-  private async loadState(): Promise<void> {
+  private loadState(): void {
     try {
-      const stateKey = `vision-compare-${window.location.hostname}`
-      const result = await chrome.storage.local.get([stateKey])
-      const savedState = result[stateKey]
+      const currentKey = sessionStorage.getItem('vision-compare-current-locked-key')
+      if (!currentKey) return
+
+      const savedStateStr = sessionStorage.getItem(currentKey)
+      if (!savedStateStr) return
+
+      const savedState = JSON.parse(savedStateStr)
 
       // 只有在锁定状态下保存的数据才会被恢复
       if (savedState && savedState.imageData && savedState.frozen) {
-        const isExpired = Date.now() - savedState.timestamp > 24 * 60 * 60 * 1000
-        if (!isExpired) {
-          const { imageData, timestamp, ...stateUpdates } = savedState
-          Object.assign(this.state, stateUpdates)
-          this.activate(imageData)
-        }
+        // sessionStorage 在标签页关闭时自动清理，不需要检查过期时间
+        const { imageData, timestamp, ...stateUpdates } = savedState
+        Object.assign(this.state, stateUpdates)
+        this.activate(imageData)
       }
     } catch (error) {
       // Failed to load state
     }
   }
 
-  private async loadFreezedState(): Promise<void> {
+  private loadFreezedState(): void {
     try {
-      const stateKey = `vision-compare-freezed-${window.location.hostname}`
-      const result = await chrome.storage.local.get([stateKey])
-      const savedState = result[stateKey]
+      const currentKey = sessionStorage.getItem('vision-compare-current-freezed-key')
+      if (!currentKey) return
+
+      const savedStateStr = sessionStorage.getItem(currentKey)
+      if (!savedStateStr) return
+
+      const savedState = JSON.parse(savedStateStr)
 
       // 只有在冻结状态下保存的数据才会被恢复
       if (savedState && savedState.imageData && savedState.freezed) {
-        const isExpired = Date.now() - savedState.timestamp > 24 * 60 * 60 * 1000
-        if (!isExpired) {
-          const { imageData, timestamp, ...stateUpdates } = savedState
-          Object.assign(this.state, stateUpdates)
-          this.activate(imageData)
-        }
+        // sessionStorage 在标签页关闭时自动清理，不需要检查过期时间
+        const { imageData, timestamp, ...stateUpdates } = savedState
+        Object.assign(this.state, stateUpdates)
+        this.activate(imageData)
       }
     } catch (error) {
       // Failed to load freezed state
