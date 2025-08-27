@@ -1,0 +1,409 @@
+// Vision Check Content Script Styles
+// SCSS Variables
+$primary-color: #3d61e3;
+$primary-hover: #2a4bc7;
+$danger-color: #ff3b30;
+$danger-hover: #d70015;
+$bg-white: rgba(255, 255, 255, 0.95);
+$bg-overlay: rgba(0, 0, 0, 0.1);
+$border-radius: 8px;
+$border-radius-sm: 4px;
+$shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+$backdrop-blur: blur(10px);
+$z-index-image: 999999998;
+$z-index-handle: 999999999;
+
+// 防止拖拽时选中文本
+.vision-compare-dragging {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+
+  * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+}
+
+// 图片样式
+.vision-image {
+  position: fixed !important;
+  z-index: $z-index-image !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  pointer-events: auto !important;
+  box-sizing: border-box !important;
+
+  &.frozen {
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+  }
+
+  &.hidden {
+    display: none !important;
+  }
+}
+
+// 可拖拽控制器样式
+.vision-controller {
+  position: fixed !important;
+  z-index: $z-index-handle !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  user-select: none !important;
+
+  .controller-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .controller-toggle {
+    width: 50px !important;
+    height: 50px !important;
+    background: $bg-white !important;
+    border: 2px solid $primary-color !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: move !important;
+    box-shadow: $shadow !important;
+    backdrop-filter: $backdrop-blur !important;
+    -webkit-backdrop-filter: $backdrop-blur !important;
+    transition: all 0.3s ease !important;
+    margin-bottom: 10px !important;
+
+    .toggle-icon {
+      font-size: 20px !important;
+    }
+
+    &:hover {
+      background: white !important;
+      border-color: $primary-hover !important;
+      transform: scale(1.05) !important;
+    }
+  }
+
+  .controller-panel {
+    position: absolute !important;
+    background: rgba(255, 255, 255, 0.75) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: $border-radius !important;
+    padding: 16px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    min-width: 280px !important;
+    max-width: 320px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(10px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 999999998 !important;
+
+    // 默认在控制器上方显示
+    bottom: 60px !important;
+    right: 0 !important;
+
+    &.visible {
+      opacity: 1 !important;
+      visibility: visible !important;
+      transform: translateY(0) !important;
+    }
+
+    // 当控制器在屏幕右侧时，面板显示在左侧
+    &.position-left {
+      right: 60px !important;
+      bottom: 0 !important;
+      left: auto !important;
+      top: auto !important;
+    }
+
+    // 当控制器在屏幕底部时，面板显示在上方
+    &.position-top {
+      bottom: 60px !important;
+      right: 0 !important;
+      left: auto !important;
+      top: auto !important;
+    }
+
+    // 当控制器在屏幕左侧时，面板显示在右侧
+    &.position-right {
+      left: 60px !important;
+      bottom: 0 !important;
+      right: auto !important;
+      top: auto !important;
+    }
+
+    // 当控制器在屏幕上方时，面板显示在下方
+    &.position-bottom {
+      top: 60px !important;
+      right: 0 !important;
+      bottom: auto !important;
+      left: auto !important;
+    }
+  }
+
+  .controller-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    .controller-label {
+      min-width: 50px !important;
+      font-weight: 500 !important;
+      color: #333 !important;
+      font-size: 12px !important;
+    }
+  }
+
+  .controller-slider {
+    flex: 1 !important;
+    height: 6px !important;
+    background: #e0e0e0 !important;
+    border-radius: 3px !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer !important;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      width: 18px !important;
+      height: 18px !important;
+      background: $primary-color !important;
+      border-radius: 50% !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+
+      &:hover {
+        background: $primary-hover !important;
+      }
+    }
+
+    &::-moz-range-thumb {
+      width: 18px !important;
+      height: 18px !important;
+      background: $primary-color !important;
+      border-radius: 50% !important;
+      cursor: pointer !important;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+
+      &:hover {
+        background: $primary-hover !important;
+      }
+    }
+  }
+
+  .controller-value {
+    min-width: 45px !important;
+    text-align: right !important;
+    color: #666 !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+  }
+
+  .controller-input {
+    width: 60px !important;
+    padding: 4px 6px !important;
+    border: 1px solid #ddd !important;
+    border-radius: $border-radius-sm !important;
+    font-size: 11px !important;
+    text-align: center !important;
+    background: white !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: $primary-color !important;
+      box-shadow: 0 0 0 2px rgba(61, 97, 227, 0.1) !important;
+    }
+
+    &:disabled {
+      background: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
+    }
+  }
+
+  .aspect-ratio-btn {
+    width: 20px !important;
+    height: 20px !important;
+    border: 1px solid #ddd !important;
+    background: white !important;
+    color: #666 !important;
+    border-radius: $border-radius-sm !important;
+    font-size: 10px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+    margin: 0 2px !important;
+
+    &:hover {
+      border-color: $primary-color !important;
+      color: $primary-color !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      border-color: $primary-color !important;
+      color: white !important;
+    }
+
+    &.disabled {
+      background: #f5f5f5 !important;
+      color: #ccc !important;
+      cursor: not-allowed !important;
+      border-color: #e0e0e0 !important;
+    }
+  }
+
+  .position-shortcuts {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 2px !important;
+    margin-left: 6px !important;
+    width: 50px !important;
+
+    .shortcut-btn {
+      width: 15px !important;
+      height: 15px !important;
+      border: 1px solid $primary-color !important;
+      background: transparent !important;
+      color: $primary-color !important;
+      border-radius: 2px !important;
+      font-size: 9px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.2s ease !important;
+
+      &:hover:not(:disabled) {
+        background: $primary-color !important;
+        color: white !important;
+      }
+
+      &:disabled {
+        background: #f5f5f5 !important;
+        color: #ccc !important;
+        cursor: not-allowed !important;
+        border-color: #e0e0e0 !important;
+      }
+
+      &#move-top {
+        grid-column: 2 !important;
+        grid-row: 1 !important;
+      }
+
+      &#move-left {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+      }
+
+      &#move-right {
+        grid-column: 3 !important;
+        grid-row: 2 !important;
+      }
+
+      &#move-bottom {
+        grid-column: 2 !important;
+        grid-row: 2 !important;
+      }
+    }
+  }
+
+  .size-shortcuts {
+    display: flex !important;
+    gap: 2px !important;
+    margin-left: 6px !important;
+
+    .shortcut-btn {
+      width: 20px !important;
+      height: 15px !important;
+      border: 1px solid $primary-color !important;
+      background: transparent !important;
+      color: $primary-color !important;
+      border-radius: 2px !important;
+      font-size: 8px !important;
+      font-weight: bold !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.2s ease !important;
+
+      &:hover:not(:disabled) {
+        background: $primary-color !important;
+        color: white !important;
+      }
+
+      &:disabled {
+        background: #f5f5f5 !important;
+        color: #ccc !important;
+        cursor: not-allowed !important;
+        border-color: #e0e0e0 !important;
+      }
+    }
+  }
+
+  .controller-actions {
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 16px !important;
+    padding-top: 16px !important;
+    border-top: 1px solid #eee !important;
+  }
+
+  .controller-btn {
+    flex: 1 !important;
+    padding: 8px 12px !important;
+    border: 1px solid $primary-color !important;
+    background: transparent !important;
+    color: $primary-color !important;
+    border-radius: $border-radius-sm !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background: $primary-color !important;
+      color: white !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      color: white !important;
+    }
+
+    &.danger {
+      border-color: $danger-color !important;
+      color: $danger-color !important;
+
+      &:hover {
+        background: $danger-color !important;
+        color: white !important;
+      }
+    }
+  }
+}
+
+// 确保不影响页面其他元素
+.vision-controller *,
+.vision-image {
+  box-sizing: border-box !important;
+}
