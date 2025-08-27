@@ -64,8 +64,8 @@
 
 ### 环境要求
 
-- Node.js 16+
-- npm 或 yarn
+- Node.js 22+
+- pnpm
 
 ### 开发命令
 
