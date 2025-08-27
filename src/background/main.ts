@@ -7,18 +7,18 @@ chrome.commands.onCommand.addListener((command: string) => {
     const tabId = tabs?.[0]?.id
     if (!tabId) return
     
-    chrome.tabs.sendMessage(tabId, { action: 'command', command }).catch((error) => {
-      console.log('Failed to send command to content script:', error)
+    chrome.tabs.sendMessage(tabId, { action: 'command', command }).catch(() => {
+      // Failed to send command to content script
     })
   })
 })
 
 // 扩展安装时的处理
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('Vision Check extension installed')
+  // Vision Check extension installed
 })
 
 // 处理扩展图标点击（如果需要的话）
-chrome.action.onClicked?.addListener((tab) => {
-  console.log('Extension icon clicked for tab:', tab.id)
+chrome.action.onClicked?.addListener((_tab) => {
+  // Extension icon clicked
 })

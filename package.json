@@ -1,6 +1,7 @@
 {
-  "name": "vision-compare-vue",
+  "name": "vision-compare",
   "version": "1.0.0",
+  "displayName": "Vision Compare（你的眼睛不是尺）",
   "description": "前端页面与设计稿像素级对比，提升还原率；支持覆盖、差异高亮、分屏对比、快捷键与持久化",
   "type": "module",
   "engines": {

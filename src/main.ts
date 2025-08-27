@@ -144,18 +144,18 @@ export class VisionCheckError extends Error {
   }
 }
 
-// 日志工具
+// 日志工具（生产环境下禁用）
 export const logger = {
-  info: (message: string, ...args: any[]) => {
-    console.log(`[Vision Check] ${message}`, ...args)
+  info: (_message: string, ..._args: any[]) => {
+    // Disabled in production
   },
-  
-  warn: (message: string, ...args: any[]) => {
-    console.warn(`[Vision Check] ${message}`, ...args)
+
+  warn: (_message: string, ..._args: any[]) => {
+    // Disabled in production
   },
-  
-  error: (message: string, ...args: any[]) => {
-    console.error(`[Vision Check] ${message}`, ...args)
+
+  error: (_message: string, ..._args: any[]) => {
+    // Disabled in production
   }
 }
 

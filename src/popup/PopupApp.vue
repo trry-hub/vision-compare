@@ -154,7 +154,6 @@ const checkStatus = async (): Promise<void> => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (!tab?.id) {
-      console.warn('No active tab found')
       return
     }
 
@@ -164,7 +163,7 @@ const checkStatus = async (): Promise<void> => {
       toolbarVisible.value = response.toolbarVisible || false
     }
   } catch (error) {
-    console.log('Content script not ready or page not supported:', error)
+    // Content script not ready or page not supported
   }
 }
 
@@ -201,20 +200,16 @@ const handleDrop = (event: DragEvent): void => {
 
 // 上传图片
 const uploadImage = async (file: File): Promise<void> => {
-  console.log('Starting image upload...', file)
   isUploading.value = true
 
   const reader = new FileReader()
   reader.onload = async (e) => {
     try {
-      console.log('Image loaded, sending to content script...')
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
       if (!tab?.id) {
         throw new Error('未找到活动标签页')
       }
-
-      console.log('Active tab:', tab)
 
       // 检查页面是否支持（不是 chrome:// 等特殊页面）
       if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://') || tab.url?.startsWith('edge://') || tab.url?.startsWith('about:')) {
@@ -228,17 +223,14 @@ const uploadImage = async (file: File): Promise<void> => {
         const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' })
         if (pingResponse?.success) {
           contentScriptReady = true
-          console.log('Content script already loaded')
         }
       } catch (pingError) {
-        console.log('Content script not responding, will inject')
+        // Content script not responding, will inject
       }
 
       // 如果 content script 未加载，注入它
       if (!contentScriptReady) {
         try {
-          console.log('Injecting content script...')
-
           // 注入 CSS
           await chrome.scripting.insertCSS({
             target: { tabId: tab.id },
@@ -263,12 +255,10 @@ const uploadImage = async (file: File): Promise<void> => {
               const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' })
               if (pingResponse?.success) {
                 contentScriptReady = true
-                console.log('Content script loaded successfully')
                 break
               }
             } catch (e) {
               retries++
-              console.log(`Retry ${retries}/${maxRetries}...`)
               await new Promise(resolve => setTimeout(resolve, 200))
             }
           }
@@ -278,7 +268,6 @@ const uploadImage = async (file: File): Promise<void> => {
           }
 
         } catch (injectionError) {
-          console.error('Failed to inject content script:', injectionError)
           throw new Error('无法在当前页面注入扩展脚本，请刷新页面后重试')
         }
       }
@@ -289,8 +278,6 @@ const uploadImage = async (file: File): Promise<void> => {
         imageData: e.target?.result as string
       })
 
-      console.log('Message sent successfully, response:', response)
-
       if (response?.success) {
         isActive.value = true
         window.close()
@@ -299,7 +286,6 @@ const uploadImage = async (file: File): Promise<void> => {
       }
 
     } catch (error) {
-      console.error('Failed to send image to content script:', error)
       alert(`上传失败：${(error as Error).message}`)
     } finally {
       isUploading.value = false
@@ -316,9 +302,11 @@ const handleToggleController = async (): Promise<void> => {
     if (!tab?.id) return
 
     await chrome.tabs.sendMessage(tab.id, { action: 'toggleControllerVisibility' })
-    toolbarVisible.value = !toolbarVisible.value
+
+    // 重新检查状态以同步
+    await checkStatus()
   } catch (error) {
-    console.error('Failed to toggle controller:', error)
+    // Failed to toggle controller
   }
 }
 
@@ -332,7 +320,7 @@ const handleExit = async (): Promise<void> => {
     isActive.value = false
     window.close()
   } catch (error) {
-    console.error('Failed to exit:', error)
+    // Failed to exit
   }
 }
 

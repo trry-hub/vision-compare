@@ -1,6 +1,7 @@
 import fs from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import generateManifest from './generate-manifest.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -8,17 +9,14 @@ const __dirname = path.dirname(__filename)
 async function buildExtension() {
   const distDir = path.join(__dirname, '../dist')
   const publicDir = path.join(__dirname, '../public')
-  
+
   console.log('Building Chrome Extension...')
-  
+
   // 确保dist目录存在
   await fs.ensureDir(distDir)
-  
-  // 复制manifest.json
-  const manifestSrc = path.join(publicDir, 'manifest.json')
-  const manifestDest = path.join(distDir, 'manifest.json')
-  await fs.copy(manifestSrc, manifestDest)
-  console.log('✓ Copied manifest.json')
+
+  // 首先生成 manifest.json
+  await generateManifest()
   
   // 复制图标文件
   const iconsSrc = path.join(publicDir, 'icons')

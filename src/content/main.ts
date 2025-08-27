@@ -47,10 +47,7 @@ class VisionCheckManager {
   }
 
   private init(): void {
-    console.log('Vision Check Manager initialized')
-    
     if ((window as any).visionCheckInitialized) {
-      console.log('Vision Check already initialized')
       return
     }
     
@@ -59,18 +56,14 @@ class VisionCheckManager {
     // 监听消息
     chrome.runtime.onMessage.addListener(
       (message: MessageRequest, _sender, sendResponse: (response: MessageResponse) => void) => {
-        console.log('Received message:', message)
-        
         this.handleMessage(message)
           .then(response => {
-            console.log('Sending response:', response)
             sendResponse(response)
           })
           .catch(error => {
-            console.error('Error handling message:', error)
             sendResponse({ success: false, error: error.message })
           })
-        
+
         return true
       }
     )
@@ -130,7 +123,6 @@ class VisionCheckManager {
     this.updateStyles()
 
     this.isActive = true
-    console.log('Vision Check activated')
   }
 
   private deactivate(): void {
@@ -150,7 +142,6 @@ class VisionCheckManager {
     this.clearState()
 
     this.isActive = false
-    console.log('Vision Check deactivated')
   }
 
   private createController(): void {
@@ -696,6 +687,9 @@ class VisionCheckManager {
     if (this.controller) {
       const isHidden = this.controller.style.display === 'none'
       this.controller.style.display = isHidden ? 'block' : 'none'
+      // 更新状态：如果之前是隐藏的，现在显示了，所以是true；如果之前是显示的，现在隐藏了，所以是false
+      this.state.toolbarVisible = isHidden
+      this.conditionalSaveState()
     }
   }
 
@@ -793,9 +787,8 @@ class VisionCheckManager {
       }
 
       await chrome.storage.local.set({ [stateKey]: stateData })
-      console.log('State saved (frozen mode)')
     } catch (error) {
-      console.warn('Failed to save state:', error)
+      // Failed to save state
     }
   }
 
@@ -805,9 +798,8 @@ class VisionCheckManager {
 
       const stateKey = `vision-compare-${window.location.hostname}`
       await chrome.storage.local.remove([stateKey])
-      console.log('State cleared')
     } catch (error) {
-      console.warn('Failed to clear state:', error)
+      // Failed to clear state
     }
   }
 
@@ -824,11 +816,10 @@ class VisionCheckManager {
           const { imageData, timestamp, ...stateUpdates } = savedState
           Object.assign(this.state, stateUpdates)
           this.activate(imageData)
-          console.log('State restored (was frozen)')
         }
       }
     } catch (error) {
-      console.warn('Failed to load state:', error)
+      // Failed to load state
     }
   }
 }
