@@ -67,7 +67,7 @@ export const VISION_CHECK_CONFIG: VisionCheckConfig = {
 
 // 常量定义
 export const STORAGE_KEY_PREFIX = 'vision-compare-'
-export const EXTENSION_ID = 'vision-check-app'
+export const EXTENSION_ID = 'vision-compare-app'
 export const Z_INDEX_BASE = 999999998
 
 // 工具函数
