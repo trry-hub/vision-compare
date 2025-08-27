@@ -97,6 +97,10 @@
             <span>锁定/解锁图片位置</span>
           </div>
           <div class="shortcut-item">
+            <kbd>Z</kbd>
+            <span>冻结/解冻图片内容</span>
+          </div>
+          <div class="shortcut-item">
             <kbd>V</kbd>
             <span>显示/隐藏图片</span>
           </div>

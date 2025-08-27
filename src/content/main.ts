@@ -5,7 +5,8 @@ import './style.scss'
 // 简化的状态接口
 interface VisionState {
   visible: boolean
-  frozen: boolean
+  frozen: boolean      // 锁定：控制器不可修改
+  freezed: boolean     // 冻结：内容冻结但控制器可修改
   toolbarVisible: boolean
   opacity: number
   position: { x: number; y: number }
@@ -25,6 +26,7 @@ class VisionCheckManager {
   private state: VisionState = {
     visible: true,
     frozen: false,
+    freezed: false,
     toolbarVisible: true, // 默认显示控制器
     opacity: 50,
     position: { x: 0, y: 0 }, // 默认从左上角开始
@@ -70,9 +72,10 @@ class VisionCheckManager {
 
     // 绑定事件
     this.bindEvents()
-    
+
     // 恢复状态
     this.loadState()
+    this.loadFreezedState()
   }
 
   private async handleMessage(message: MessageRequest): Promise<MessageResponse> {
@@ -236,6 +239,9 @@ class VisionCheckManager {
             <button class="controller-btn ${this.state.frozen ? 'active' : ''}" id="freeze-btn">
               ${this.state.frozen ? '解锁' : '锁定'}
             </button>
+            <button class="controller-btn ${this.state.freezed ? 'active' : ''}" id="freezed-btn">
+              ${this.state.freezed ? '解冻' : '冻结'}
+            </button>
             <button class="controller-btn" id="reset-btn">原图</button>
           </div>
         </div>
@@ -329,6 +335,7 @@ class VisionCheckManager {
     // 按钮事件
     this.controller.querySelector('#visibility-btn')?.addEventListener('click', () => this.toggleVisibility())
     this.controller.querySelector('#freeze-btn')?.addEventListener('click', () => this.toggleFreeze())
+    this.controller.querySelector('#freezed-btn')?.addEventListener('click', () => this.toggleFreezed())
     this.controller.querySelector('#reset-btn')?.addEventListener('click', () => this.resetToOriginal())
 
     // 位置快捷按钮 - 贴边功能
@@ -450,6 +457,7 @@ class VisionCheckManager {
     const sizeH = this.controller.querySelector('#size-h') as HTMLInputElement
     const visibilityBtn = this.controller.querySelector('#visibility-btn')
     const freezeBtn = this.controller.querySelector('#freeze-btn')
+    const freezedBtn = this.controller.querySelector('#freezed-btn')
     const aspectRatioBtn = this.controller.querySelector('#aspect-ratio-toggle')
 
     if (opacityValue) opacityValue.textContent = `${this.state.opacity}%`
@@ -477,6 +485,10 @@ class VisionCheckManager {
     if (freezeBtn) {
       freezeBtn.textContent = this.state.frozen ? '解锁' : '锁定'
       freezeBtn.className = `controller-btn ${this.state.frozen ? 'active' : ''}`
+    }
+    if (freezedBtn) {
+      freezedBtn.textContent = this.state.freezed ? '解冻' : '冻结'
+      freezedBtn.className = `controller-btn ${this.state.freezed ? 'active' : ''}`
     }
     if (aspectRatioBtn) {
       aspectRatioBtn.className = `aspect-ratio-btn ${this.maintainAspectRatio ? 'active' : ''} ${this.state.frozen ? 'disabled' : ''}`
@@ -596,6 +608,9 @@ class VisionCheckManager {
       case 'l':
         this.toggleFreeze()
         break
+      case 'z':
+        this.toggleFreezed()
+        break
       case 't':
         this.toggleController()
         break
@@ -631,6 +646,18 @@ class VisionCheckManager {
       this.saveState() // 锁定时保存状态
     } else {
       this.clearState() // 解锁时清理状态
+    }
+  }
+
+  private toggleFreezed(): void {
+    this.state.freezed = !this.state.freezed
+    this.updateStyles()
+
+    // 冻结状态改变时，需要保存或清理状态
+    if (this.state.freezed) {
+      this.saveFreezedState() // 冻结时保存状态
+    } else {
+      this.clearFreezedState() // 解冻时清理状态
     }
   }
 
@@ -768,10 +795,13 @@ class VisionCheckManager {
     this.conditionalSaveState()
   }
 
-  // 条件保存：只有在锁定状态时才保存
+  // 条件保存：锁定状态保存到锁定存储，冻结状态保存到冻结存储
   private conditionalSaveState(): void {
     if (this.state.frozen) {
       this.saveState()
+    }
+    if (this.state.freezed) {
+      this.saveFreezedState()
     }
   }
 
@@ -803,6 +833,34 @@ class VisionCheckManager {
     }
   }
 
+  private async saveFreezedState(): Promise<void> {
+    try {
+      if (!chrome.runtime?.id) return
+
+      const stateKey = `vision-compare-freezed-${window.location.hostname}`
+      const imageData = this.imageElement?.src || ''
+      const stateData = {
+        ...this.state,
+        imageData,
+        timestamp: Date.now()
+      }
+      await chrome.storage.local.set({ [stateKey]: stateData })
+    } catch (error) {
+      // Failed to save freezed state
+    }
+  }
+
+  private async clearFreezedState(): Promise<void> {
+    try {
+      if (!chrome.runtime?.id) return
+
+      const stateKey = `vision-compare-freezed-${window.location.hostname}`
+      await chrome.storage.local.remove([stateKey])
+    } catch (error) {
+      // Failed to clear freezed state
+    }
+  }
+
   private async loadState(): Promise<void> {
     try {
       const stateKey = `vision-compare-${window.location.hostname}`
@@ -820,6 +878,26 @@ class VisionCheckManager {
       }
     } catch (error) {
       // Failed to load state
+    }
+  }
+
+  private async loadFreezedState(): Promise<void> {
+    try {
+      const stateKey = `vision-compare-freezed-${window.location.hostname}`
+      const result = await chrome.storage.local.get([stateKey])
+      const savedState = result[stateKey]
+
+      // 只有在冻结状态下保存的数据才会被恢复
+      if (savedState && savedState.imageData && savedState.freezed) {
+        const isExpired = Date.now() - savedState.timestamp > 24 * 60 * 60 * 1000
+        if (!isExpired) {
+          const { imageData, timestamp, ...stateUpdates } = savedState
+          Object.assign(this.state, stateUpdates)
+          this.activate(imageData)
+        }
+      }
+    } catch (error) {
+      // Failed to load freezed state
     }
   }
 }
