@@ -33,7 +33,7 @@
 2. 运行构建命令：
    ```bash
    npm install
-   npm run build:extension
+   npm run build
    ```
 3. 在 Chrome 浏览器中打开 `chrome://extensions/`
 4. 启用右上角的"开发者模式"
@@ -80,7 +80,7 @@ npm run dev
 npm run type-check
 
 # 构建扩展
-npm run build:extension
+npm run build
 
 # 预览构建结果
 npm run preview
