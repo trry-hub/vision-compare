@@ -1,4 +1,4 @@
-// Vision Check Content Script - Chrome Extension Compatible
+// Vision Compare Content Script - Chrome Extension Compatible
 import type { MessageRequest, MessageResponse } from '../main'
 import './style.scss'
 
@@ -15,7 +15,7 @@ interface VisionState {
 }
 
 /**
- * Vision Check Manager - Chrome 扩展兼容版本
+ * Vision Compare Manager - Chrome 扩展兼容版本
  * 使用纯 TypeScript，避免 ES 模块导入问题
  */
 class VisionCheckManager {
@@ -43,6 +43,7 @@ class VisionCheckManager {
 
   private dragStart = { x: 0, y: 0 }
   private elementStart = { x: 0, y: 0 }
+  private saveDebounceTimer: number | null = null
 
   constructor() {
     this.init()
@@ -73,7 +74,7 @@ class VisionCheckManager {
     // 绑定事件
     this.bindEvents()
 
-    // 恢复状态
+    // 恢复锁定和冻结状态（但不恢复临时状态，避免退出后又自动恢复）
     this.loadState()
     this.loadFreezedState()
   }
@@ -114,6 +115,9 @@ class VisionCheckManager {
       this.deactivate()
     }
 
+    // 尝试恢复临时状态（如果存在且图片匹配）
+    this.tryRestoreTempState(imageData)
+
     // 创建图片
     this.imageElement = document.createElement('img')
     this.imageElement.src = imageData
@@ -141,17 +145,33 @@ class VisionCheckManager {
     document.removeEventListener('mouseup', this.handleMouseUp)
     document.removeEventListener('keydown', this.handleKeydown)
 
-    // 清理当前页面的存储数据
-    this.clearState()
+    // 清理所有存储数据
+    this.clearState()        // 清理锁定状态
+    this.clearFreezedState() // 清理冻结状态
+    this.clearTempState()    // 清理临时状态
+
+    // 重置状态到初始值
+    this.state = {
+      visible: true,
+      frozen: false,
+      freezed: false,
+      toolbarVisible: true,
+      opacity: 50,
+      position: { x: 0, y: 0 },
+      size: { width: 300, height: 200 },
+      originalSize: { width: 0, height: 0 }
+    }
 
     this.isActive = false
   }
 
   private createController(): void {
-    // 设置控制器初始位置（右下角，确保不超出屏幕）
+    // 设置控制器初始位置（右下角，边距10px）
+    const controllerWidth = 280 // 控制器宽度约280px
+    const controllerHeight = 180 // 控制器高度约180px
     this.controllerPosition = {
-      x: Math.max(20, window.innerWidth - 300), // 控制器宽度约280px，留20px边距
-      y: Math.max(20, window.innerHeight - 200)  // 控制器高度约180px，留20px边距
+      x: Math.max(10, window.innerWidth - controllerWidth - 10), // 右边距10px
+      y: Math.max(10, window.innerHeight - controllerHeight - 10)  // 底边距10px
     }
 
     this.controller = document.createElement('div')
@@ -280,7 +300,8 @@ class VisionCheckManager {
       this.state.opacity = parseInt((e.target as HTMLInputElement).value)
       if (opacityValue) opacityValue.textContent = `${this.state.opacity}%`
       this.updateStyles()
-      this.conditionalSaveState()
+      // 使用防抖保存避免频繁操作导致卡顿
+      this.debouncedSaveState()
     })
 
     // 位置输入
@@ -293,7 +314,7 @@ class VisionCheckManager {
       if (value === '') return // 允许空值，用户可能在输入过程中
       this.state.position.x = parseInt(value) || 0
       this.updateStyles()
-      this.conditionalSaveState()
+      this.debouncedSaveState()
     })
 
     posY?.addEventListener('input', (e) => {
@@ -302,7 +323,7 @@ class VisionCheckManager {
       if (value === '') return // 允许空值，用户可能在输入过程中
       this.state.position.y = parseInt(value) || 0
       this.updateStyles()
-      this.conditionalSaveState()
+      this.debouncedSaveState()
     })
 
     // 尺寸输入
@@ -420,6 +441,7 @@ class VisionCheckManager {
 
     this.updateStyles()
     this.conditionalSaveState()
+    this.saveTempState()
   }
 
   private updateStyles(): void {
@@ -570,6 +592,11 @@ class VisionCheckManager {
   }
 
   private handleKeydown = (e: KeyboardEvent): void => {
+    // 只有在扩展激活时才处理快捷键
+    if (!this.isActive) {
+      return
+    }
+
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
       return
     }
@@ -625,7 +652,7 @@ class VisionCheckManager {
 
     if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
       this.updateStyles()
-      this.conditionalSaveState()
+      this.debouncedSaveState()
     }
   }
 
@@ -633,7 +660,7 @@ class VisionCheckManager {
   private toggleVisibility(): void {
     this.state.visible = !this.state.visible
     this.updateStyles()
-    this.conditionalSaveState()
+    this.debouncedSaveState()
   }
 
   private toggleFreeze(): void {
@@ -652,11 +679,11 @@ class VisionCheckManager {
     this.state.freezed = !this.state.freezed
     this.updateStyles()
 
-    // 冻结状态改变时，需要保存或清理状态
+    // 冻结时保存当前状态，解冻时清理冻结存储
     if (this.state.freezed) {
-      this.saveFreezedState() // 冻结时保存状态
+      this.saveFreezedState() // 冻结时保存当前状态
     } else {
-      this.clearFreezedState() // 解冻时清理状态
+      this.clearFreezedState() // 解冻时清理冻结存储
     }
   }
 
@@ -678,7 +705,7 @@ class VisionCheckManager {
     if (this.state.originalSize.width && this.state.originalSize.height) {
       this.state.size = { ...this.state.originalSize }
       this.updateStyles()
-      this.conditionalSaveState()
+      this.debouncedSaveState()
     }
   }
 
@@ -706,7 +733,7 @@ class VisionCheckManager {
     }
 
     this.updateStyles()
-    this.conditionalSaveState()
+    this.debouncedSaveState()
   }
 
   private toggleControllerVisibility(): void {
@@ -715,7 +742,7 @@ class VisionCheckManager {
       this.controller.style.display = isHidden ? 'block' : 'none'
       // 更新状态：如果之前是隐藏的，现在显示了，所以是true；如果之前是显示的，现在隐藏了，所以是false
       this.state.toolbarVisible = isHidden
-      this.conditionalSaveState()
+      this.debouncedSaveState()
     }
   }
 
@@ -791,7 +818,7 @@ class VisionCheckManager {
 
     this.updateStyles()
     this.updateControllerValues()
-    this.conditionalSaveState()
+    this.debouncedSaveState()
   }
 
   // 条件保存：锁定状态保存到锁定存储，冻结状态保存到冻结存储
@@ -804,9 +831,39 @@ class VisionCheckManager {
     }
   }
 
+  // 强制保存：在冻结或锁定状态下，修改信息直接保存
+  private forceSaveState(): void {
+    if (this.state.frozen) {
+      this.saveState()
+    }
+    if (this.state.freezed) {
+      this.saveFreezedState()
+    }
+    // 总是保存到临时状态
+    this.saveTempState()
+  }
+
+  // 防抖保存：避免频繁保存导致卡顿
+  private debouncedSaveState(): void {
+    if (this.saveDebounceTimer) {
+      clearTimeout(this.saveDebounceTimer)
+    }
+
+    this.saveDebounceTimer = window.setTimeout(() => {
+      this.forceSaveState()
+      this.saveDebounceTimer = null
+    }, 1000) // 1秒防抖
+  }
+
   private saveState(): void {
     try {
-      const stateKey = `vision-compare-locked-${window.location.href}-${Date.now()}`
+      // 检查是否已有现有的键，如果有就重用，没有就创建新的
+      let stateKey = sessionStorage.getItem('vision-compare-current-locked-key')
+      if (!stateKey) {
+        stateKey = `vision-compare-locked-${window.location.href}-${Date.now()}`
+        sessionStorage.setItem('vision-compare-current-locked-key', stateKey)
+      }
+
       const stateData = {
         ...this.state,
         imageData: this.imageElement?.src || '',
@@ -814,8 +871,6 @@ class VisionCheckManager {
       }
 
       sessionStorage.setItem(stateKey, JSON.stringify(stateData))
-      // 保存当前使用的 key，用于后续清理
-      sessionStorage.setItem('vision-compare-current-locked-key', stateKey)
     } catch (error) {
       // Failed to save state
     }
@@ -835,7 +890,13 @@ class VisionCheckManager {
 
   private saveFreezedState(): void {
     try {
-      const stateKey = `vision-compare-freezed-${window.location.href}-${Date.now()}`
+      // 检查是否已有现有的键，如果有就重用，没有就创建新的
+      let stateKey = sessionStorage.getItem('vision-compare-current-freezed-key')
+      if (!stateKey) {
+        stateKey = `vision-compare-freezed-${window.location.href}-${Date.now()}`
+        sessionStorage.setItem('vision-compare-current-freezed-key', stateKey)
+      }
+
       const imageData = this.imageElement?.src || ''
       const stateData = {
         ...this.state,
@@ -843,8 +904,6 @@ class VisionCheckManager {
         timestamp: Date.now()
       }
       sessionStorage.setItem(stateKey, JSON.stringify(stateData))
-      // 保存当前使用的 key，用于后续清理
-      sessionStorage.setItem('vision-compare-current-freezed-key', stateKey)
     } catch (error) {
       // Failed to save freezed state
     }
@@ -859,6 +918,48 @@ class VisionCheckManager {
       }
     } catch (error) {
       // Failed to clear freezed state
+    }
+  }
+
+  // 临时状态保存 - 用于保存透明度等实时变化的数据
+  private saveTempState(): void {
+    try {
+      const stateKey = `vision-compare-temp-${window.location.href}`
+      const stateData = {
+        ...this.state,
+        imageData: this.imageElement?.src || '',
+        timestamp: Date.now()
+      }
+      sessionStorage.setItem(stateKey, JSON.stringify(stateData))
+    } catch (error) {
+      // Failed to save temp state
+    }
+  }
+
+  private clearTempState(): void {
+    try {
+      const stateKey = `vision-compare-temp-${window.location.href}`
+      sessionStorage.removeItem(stateKey)
+    } catch (error) {
+      // Failed to clear temp state
+    }
+  }
+
+  private tryRestoreTempState(currentImageData: string): void {
+    try {
+      const stateKey = `vision-compare-temp-${window.location.href}`
+      const savedStateStr = sessionStorage.getItem(stateKey)
+      if (!savedStateStr) return
+
+      const savedState = JSON.parse(savedStateStr)
+
+      // 只有当图片数据匹配时才恢复临时状态
+      if (savedState && savedState.imageData === currentImageData) {
+        const { imageData, timestamp, ...stateUpdates } = savedState
+        Object.assign(this.state, stateUpdates)
+      }
+    } catch (error) {
+      // Failed to restore temp state
     }
   }
 

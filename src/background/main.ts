@@ -1,4 +1,4 @@
-// Background script for Vision Check extension
+// Background script for Vision Compare extension
 
 // 处理快捷键命令
 chrome.commands.onCommand.addListener((command: string) => {
@@ -15,7 +15,7 @@ chrome.commands.onCommand.addListener((command: string) => {
 
 // 扩展安装时的处理
 chrome.runtime.onInstalled.addListener(() => {
-  // Vision Check extension installed
+  // Vision Compare extension installed
 })
 
 // 处理扩展图标点击（如果需要的话）

@@ -24,7 +24,7 @@
   "commands": {
     "vc_toggle_panel": {
       "suggested_key": { "default": "Ctrl+Shift+V" },
-      "description": "Toggle Vision Check panel"
+      "description": "Toggle Vision Compare panel"
     },
     "vc_toggle_lock": {
       "suggested_key": { "default": "Ctrl+Shift+L" },
@@ -36,7 +36,7 @@
     },
     "vc_exit": {
       "suggested_key": { "default": "Ctrl+Shift+X" },
-      "description": "Exit Vision Check"
+      "description": "Exit Vision Compare"
     }
   },
   "content_scripts": [

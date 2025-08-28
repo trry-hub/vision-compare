@@ -4,7 +4,7 @@
     <div class="popup-header">
       <div class="header-icon">🎯</div>
       <div class="header-content">
-        <h1 class="header-title">Vision Check</h1>
+        <h1 class="header-title">Vision Compare</h1>
         <p class="header-subtitle">精准设计稿对比工具</p>
       </div>
     </div>

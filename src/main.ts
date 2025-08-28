@@ -1,5 +1,5 @@
 /**
- * Vision Check 主入口文件
+ * Vision Compare 主入口文件
  * 
  * 这个文件作为整个扩展的主入口，负责：
  * 1. 导出核心模块
@@ -57,7 +57,7 @@ export interface MessageResponse {
 // 扩展配置
 export const VISION_CHECK_CONFIG: VisionCheckConfig = {
   version: '2.0.0',
-  name: 'Vision Check（你的眼睛不是尺）',
+  name: 'Vision Compare（你的眼睛不是尺）',
   defaultOpacity: 50,
   defaultPosition: { x: 100, y: 100 },
   defaultSize: { width: 300, height: 200 },

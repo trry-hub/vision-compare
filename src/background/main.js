@@ -1,4 +1,4 @@
-// Background script for Vision Check extension
+// Background script for Vision Compare extension
 chrome.commands.onCommand.addListener((command) => {
   // 向当前活动标签页的 content script 转发命令
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
