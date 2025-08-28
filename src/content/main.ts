@@ -47,183 +47,84 @@ class VisionCheckManager {
   private elementStart = { x: 0, y: 0 }
   private saveDebounceTimer: number | null = null
 
+  // 混合模式选项
+  private blendModes = [
+    { value: 'normal', label: '正常' },
+    { value: 'multiply', label: '正片叠底' },
+    { value: 'screen', label: '滤色' },
+    { value: 'overlay', label: '叠加' },
+    { value: 'soft-light', label: '柔光' },
+    { value: 'hard-light', label: '强光' },
+    { value: 'color-dodge', label: '颜色减淡' },
+    { value: 'color-burn', label: '颜色加深' },
+    { value: 'darken', label: '变暗' },
+    { value: 'lighten', label: '变亮' },
+    { value: 'difference', label: '差值' },
+    { value: 'exclusion', label: '排除' }
+  ]
+
   constructor() {
     this.init()
   }
 
   // ==================== 公共工具方法 ====================
 
-  /**
-   * 安全的DOM查询
-   */
-  private querySelector<T extends HTMLElement>(selector: string): T | null {
-    return this.controller?.querySelector(selector) as T | null
-  }
-
-
-
-  /**
-   * 通用输入框事件处理
-   */
-  private createInputHandler(
-    updateFn: (value: number) => void,
-    options: {
-      checkFrozen?: boolean
-      allowEmpty?: boolean
-      minValue?: number
-    } = {}
-  ): (e: Event) => void {
-    return (e: Event) => {
-      if (options.checkFrozen && this.state.frozen) return
-
-      const value = (e.target as HTMLInputElement).value
-      if (options.allowEmpty && value === '') return
-
-      const numValue = parseInt(value) || 0
-      const finalValue = options.minValue ? Math.max(options.minValue, numValue) : numValue
-
-      updateFn(finalValue)
-      this.updateStyles()
-      this.debouncedSaveState()
+  // 获取指定方向的位置值
+  private getPositionValue(direction: 'top' | 'bottom' | 'left' | 'right'): string {
+    switch (this.state.positionMode) {
+      case 'absolute':
+        return direction === 'top' || direction === 'left' ?
+               (direction === 'top' ? this.state.position.y : this.state.position.x).toString() : ''
+      case 'top':
+        return direction === 'top' ? '0' : direction === 'left' ? this.state.position.x.toString() : ''
+      case 'bottom':
+        return direction === 'bottom' ? '0' : direction === 'left' ? this.state.position.x.toString() : ''
+      case 'left':
+        return direction === 'left' ? '0' : direction === 'top' ? this.state.position.y.toString() : ''
+      case 'right':
+        return direction === 'right' ? '0' : direction === 'top' ? this.state.position.y.toString() : ''
+      case 'top-left':
+        return (direction === 'top' || direction === 'left') ? '0' : ''
+      case 'top-right':
+        return (direction === 'top' || direction === 'right') ? '0' : ''
+      case 'bottom-left':
+        return (direction === 'bottom' || direction === 'left') ? '0' : ''
+      case 'bottom-right':
+        return (direction === 'bottom' || direction === 'right') ? '0' : ''
+      default:
+        return ''
     }
   }
 
-  /**
-   * 通用按钮事件处理
-   */
-  private createButtonHandler(
-    actionFn: () => void,
-    options: {
-      checkFrozen?: boolean
-    } = {}
-  ): () => void {
-    return () => {
-      if (options.checkFrozen && this.state.frozen) return
-      actionFn()
+  // 判断指定方向的输入框是否启用
+  private isPositionInputEnabled(direction: 'top' | 'bottom' | 'left' | 'right'): boolean {
+    switch (this.state.positionMode) {
+      case 'absolute':
+        return direction === 'top' || direction === 'left'
+      case 'top':
+        return direction === 'top' || direction === 'left'
+      case 'bottom':
+        return direction === 'bottom' || direction === 'left'
+      case 'left':
+        return direction === 'left' || direction === 'top'
+      case 'right':
+        return direction === 'right' || direction === 'top'
+      case 'top-left':
+        return direction === 'top' || direction === 'left'
+      case 'top-right':
+        return direction === 'top' || direction === 'right'
+      case 'bottom-left':
+        return direction === 'bottom' || direction === 'left'
+      case 'bottom-right':
+        return direction === 'bottom' || direction === 'right'
+      default:
+        return false
     }
   }
 
-  /**
-   * 统一的状态更新和保存
-   */
-  private updateStateAndSave(updateFn: () => void, saveImmediate = false): void {
-    updateFn()
-    this.updateStyles()
-    if (saveImmediate) {
-      this.forceSaveState()
-    } else {
-      this.debouncedSaveState()
-    }
-  }
 
-  /**
-   * 绑定输入框事件
-   */
-  private bindInputEvents(): void {
-    // 透明度滑块
-    const opacitySlider = this.querySelector<HTMLInputElement>('#opacity-slider')
-    const opacityValue = this.querySelector('#opacity-value')
 
-    opacitySlider?.addEventListener('input', (e) => {
-      this.state.opacity = parseInt((e.target as HTMLInputElement).value)
-      if (opacityValue) opacityValue.textContent = `${this.state.opacity}%`
-      this.updateStyles()
-      this.debouncedSaveState()
-    })
 
-    // 位置模式选择器
-    const positionMode = this.querySelector<HTMLSelectElement>('#position-mode')
-    positionMode?.addEventListener('change', (e) => {
-      if (this.state.frozen) return
-      this.state.positionMode = (e.target as HTMLSelectElement).value as any
-      this.updateStyles()
-      this.updateControllerValues()
-      this.debouncedSaveState()
-    })
-
-    // 位置输入框 - 使用公共处理器
-    const positionInputs = [
-      { id: '#pos-top', update: (v: number) => this.state.position.y = v },
-      { id: '#pos-bottom', update: (v: number) => this.state.position.y = v },
-      { id: '#pos-left', update: (v: number) => this.state.position.x = v },
-      { id: '#pos-right', update: (v: number) => this.state.position.x = v }
-    ]
-
-    positionInputs.forEach(({ id, update }) => {
-      const input = this.querySelector<HTMLInputElement>(id)
-      input?.addEventListener('input', this.createInputHandler(update, {
-        checkFrozen: true,
-        allowEmpty: true
-      }))
-    })
-
-    // 尺寸输入框
-    const sizeInputs = [
-      { id: '#size-w', dimension: 'width' as const },
-      { id: '#size-h', dimension: 'height' as const }
-    ]
-
-    sizeInputs.forEach(({ id, dimension }) => {
-      const input = this.querySelector<HTMLInputElement>(id)
-      input?.addEventListener('input', this.createInputHandler((value) => {
-        this.updateImageSize(dimension, value)
-      }, {
-        checkFrozen: true,
-        allowEmpty: true,
-        minValue: 1
-      }))
-    })
-  }
-
-  /**
-   * 绑定按钮事件
-   */
-  private bindButtonEvents(): void {
-    // 功能按钮
-    const functionButtons = [
-      { id: '#visibility-btn', action: () => this.toggleVisibility() },
-      { id: '#freeze-btn', action: () => this.toggleFreeze() },
-      { id: '#freezed-btn', action: () => this.toggleFreezed() },
-      { id: '#reset-btn', action: () => this.resetToOriginal() }
-    ]
-
-    functionButtons.forEach(({ id, action }) => {
-      const button = this.querySelector(id)
-      button?.addEventListener('click', action)
-    })
-
-    // 位置快捷按钮
-    const positionButtons = [
-      { id: '#move-top', action: () => this.snapToEdge('top') },
-      { id: '#move-bottom', action: () => this.snapToEdge('bottom') },
-      { id: '#move-left', action: () => this.snapToEdge('left') },
-      { id: '#move-right', action: () => this.snapToEdge('right') }
-    ]
-
-    positionButtons.forEach(({ id, action }) => {
-      const button = this.querySelector(id)
-      button?.addEventListener('click', this.createButtonHandler(action, { checkFrozen: true }))
-    })
-
-    // 尺寸快捷按钮
-    const sizeButtons = [
-      { id: '#fit-width', action: () => this.fitToViewport('width') },
-      { id: '#fit-height', action: () => this.fitToViewport('height') },
-      { id: '#original-size', action: () => this.resetToOriginal() }
-    ]
-
-    sizeButtons.forEach(({ id, action }) => {
-      const button = this.querySelector(id)
-      button?.addEventListener('click', this.createButtonHandler(action, { checkFrozen: true }))
-    })
-
-    // 宽高比切换按钮
-    const aspectRatioBtn = this.querySelector('#aspect-ratio-toggle')
-    aspectRatioBtn?.addEventListener('click', this.createButtonHandler(() => {
-      this.maintainAspectRatio = !this.maintainAspectRatio
-      this.updateControllerValues()
-    }, { checkFrozen: true }))
-  }
 
   private init(): void {
     if ((window as any).visionCheckInitialized) {
@@ -344,11 +245,11 @@ class VisionCheckManager {
 
   private createController(): void {
     // 设置控制器初始位置（右下角，边距10px）
-    const controllerWidth = 280 // 控制器宽度约280px
-    const controllerHeight = 180 // 控制器高度约180px
+    const panelWidth = 300 // 面板宽度
+    const panelHeight = 280 // 面板高度（包含所有控件）
     this.controllerPosition = {
-      x: Math.max(10, window.innerWidth - controllerWidth - 10), // 右边距10px
-      y: Math.max(10, window.innerHeight - controllerHeight - 10)  // 底边距10px
+      x: Math.max(10, window.innerWidth - panelWidth - 10), // 右边距10px
+      y: Math.max(10, window.innerHeight - panelHeight - 10)  // 底边距10px
     }
 
     this.controller = document.createElement('div')
@@ -356,19 +257,28 @@ class VisionCheckManager {
     this.controller.innerHTML = this.getControllerHTML()
     this.controller.style.cssText = this.getControllerStyle()
 
+    // 根据状态设置控制器显示状态
+    this.controller.style.display = this.state.toolbarVisible ? 'block' : 'none'
+
     document.body.appendChild(this.controller)
 
     // 绑定控制器事件
     this.bindControllerEvents()
+
+    // 监听窗口大小变化，确保控制器始终在可视区内
+    this.bindWindowResizeHandler()
   }
 
   private getControllerStyle(): string {
-    // 确保控制器不超出屏幕边界
-    const maxX = window.innerWidth - 50 // 控制器宽度约50px
-    const maxY = window.innerHeight - 50 // 控制器高度约50px
+    // 确保控制器不超出屏幕边界，保持10px边距
+    const panelWidth = 300 // 面板宽度
+    const panelHeight = 280 // 面板高度
+    const margin = 10 // 边距10px
+    const maxX = window.innerWidth - panelWidth - margin
+    const maxY = window.innerHeight - panelHeight - margin
 
-    const x = Math.max(0, Math.min(this.controllerPosition.x, maxX))
-    const y = Math.max(0, Math.min(this.controllerPosition.y, maxY))
+    const x = Math.max(margin, Math.min(this.controllerPosition.x, maxX))
+    const y = Math.max(margin, Math.min(this.controllerPosition.y, maxY))
 
     return `
       position: fixed !important;
@@ -385,151 +295,111 @@ class VisionCheckManager {
     }
   }
 
-  // 获取指定方向的位置值
-  private getPositionValue(direction: 'top' | 'bottom' | 'left' | 'right'): string {
-    switch (this.state.positionMode) {
-      case 'absolute':
-        return direction === 'top' || direction === 'left' ?
-               (direction === 'top' ? this.state.position.y : this.state.position.x).toString() : ''
-      case 'top':
-        return direction === 'top' ? '0' : direction === 'left' ? this.state.position.x.toString() : ''
-      case 'bottom':
-        return direction === 'bottom' ? '0' : direction === 'left' ? this.state.position.x.toString() : ''
-      case 'left':
-        return direction === 'left' ? '0' : direction === 'top' ? this.state.position.y.toString() : ''
-      case 'right':
-        return direction === 'right' ? '0' : direction === 'top' ? this.state.position.y.toString() : ''
-      case 'top-left':
-        return (direction === 'top' || direction === 'left') ? '0' : ''
-      case 'top-right':
-        return (direction === 'top' || direction === 'right') ? '0' : ''
-      case 'bottom-left':
-        return (direction === 'bottom' || direction === 'left') ? '0' : ''
-      case 'bottom-right':
-        return (direction === 'bottom' || direction === 'right') ? '0' : ''
-      default:
-        return ''
-    }
-  }
 
-  // 判断指定方向的输入框是否启用
-  private isPositionInputEnabled(direction: 'top' | 'bottom' | 'left' | 'right'): boolean {
-    switch (this.state.positionMode) {
-      case 'absolute':
-        return direction === 'top' || direction === 'left'
-      case 'top':
-        return direction === 'top' || direction === 'left'
-      case 'bottom':
-        return direction === 'bottom' || direction === 'left'
-      case 'left':
-        return direction === 'left' || direction === 'top'
-      case 'right':
-        return direction === 'right' || direction === 'top'
-      case 'top-left':
-        return direction === 'top' || direction === 'left'
-      case 'top-right':
-        return direction === 'top' || direction === 'right'
-      case 'bottom-left':
-        return direction === 'bottom' || direction === 'left'
-      case 'bottom-right':
-        return direction === 'bottom' || direction === 'right'
-      default:
-        return false
-    }
-  }
 
   private getControllerHTML(): string {
     return `
       <div class="controller-content">
-        <div class="controller-toggle" id="controller-toggle">
-          <span class="toggle-icon">⚙️</span>
-        </div>
-
-        <div class="controller-panel" id="controller-panel">
-          <div class="controller-row">
-            <label class="controller-label">透明度:</label>
-            <input type="range" min="0" max="100" value="${this.state.opacity}"
-                   class="controller-slider" id="opacity-slider" />
-            <span class="controller-value" id="opacity-value">${this.state.opacity}%</span>
+        <div class="controller-panel visible" id="controller-panel">
+          <div class="controller-header" id="controller-header">
+            <div class="drag-icon">⋯</div>
+            <span class="controller-title">Vision Compare</span>
           </div>
+          <div class="controller-body">
+            <div class="controller-row">
+              <label class="controller-label">透明度:</label>
+              <input type="range" min="0" max="100" value="${this.state.opacity}"
+                     class="controller-slider" id="opacity-slider" />
+              <span class="controller-value" id="opacity-value">${this.state.opacity}%</span>
+            </div>
 
-          <div class="controller-row">
-            <label class="controller-label">位置模式:</label>
-            <select class="controller-select" id="position-mode">
-              <option value="absolute" ${this.state.positionMode === 'absolute' ? 'selected' : ''}>绝对定位</option>
-              <option value="top" ${this.state.positionMode === 'top' ? 'selected' : ''}>贴顶部</option>
-              <option value="bottom" ${this.state.positionMode === 'bottom' ? 'selected' : ''}>贴底部</option>
-              <option value="left" ${this.state.positionMode === 'left' ? 'selected' : ''}>贴左边</option>
-              <option value="right" ${this.state.positionMode === 'right' ? 'selected' : ''}>贴右边</option>
-              <option value="top-left" ${this.state.positionMode === 'top-left' ? 'selected' : ''}>左上角</option>
-              <option value="top-right" ${this.state.positionMode === 'top-right' ? 'selected' : ''}>右上角</option>
-              <option value="bottom-left" ${this.state.positionMode === 'bottom-left' ? 'selected' : ''}>左下角</option>
-              <option value="bottom-right" ${this.state.positionMode === 'bottom-right' ? 'selected' : ''}>右下角</option>
-            </select>
-          </div>
+            <div class="controller-row">
+              <label class="controller-label">混合模式:</label>
+              <select class="controller-select" id="blend-mode">
+                ${this.blendModes.map(mode =>
+                  `<option value="${mode.value}">${mode.label}</option>`
+                ).join('')}
+              </select>
+            </div>
 
-          <div class="controller-row">
-            <label class="controller-label">位置值:</label>
-            <div class="position-inputs">
-              <div class="position-input-group">
-                <label class="position-label">Top:</label>
-                <input type="number" value="${this.getPositionValue('top')}"
-                       class="controller-input position-input" id="pos-top" placeholder="顶部距离"
-                       ${this.isPositionInputEnabled('top') ? '' : 'disabled'} />
+            <div class="controller-row">
+              <label class="controller-label">位置模式:</label>
+              <select class="controller-select" id="position-mode">
+                <option value="absolute" ${this.state.positionMode === 'absolute' ? 'selected' : ''}>绝对定位</option>
+                <option value="top" ${this.state.positionMode === 'top' ? 'selected' : ''}>贴顶部</option>
+                <option value="bottom" ${this.state.positionMode === 'bottom' ? 'selected' : ''}>贴底部</option>
+                <option value="left" ${this.state.positionMode === 'left' ? 'selected' : ''}>贴左边</option>
+                <option value="right" ${this.state.positionMode === 'right' ? 'selected' : ''}>贴右边</option>
+                <option value="top-left" ${this.state.positionMode === 'top-left' ? 'selected' : ''}>左上角</option>
+                <option value="top-right" ${this.state.positionMode === 'top-right' ? 'selected' : ''}>右上角</option>
+                <option value="bottom-left" ${this.state.positionMode === 'bottom-left' ? 'selected' : ''}>左下角</option>
+                <option value="bottom-right" ${this.state.positionMode === 'bottom-right' ? 'selected' : ''}>右下角</option>
+              </select>
+            </div>
+
+            <div class="controller-row">
+              <label class="controller-label">位置值:</label>
+              <div class="position-inputs">
+                <div class="position-input-group">
+                  <label class="position-label">Top:</label>
+                  <input type="number" value="${this.getPositionValue('top')}"
+                         class="controller-input position-input" id="pos-top" placeholder="顶部距离"
+                         ${this.isPositionInputEnabled('top') ? '' : 'disabled'} />
+                </div>
+                <div class="position-input-group">
+                  <label class="position-label">Bottom:</label>
+                  <input type="number" value="${this.getPositionValue('bottom')}"
+                         class="controller-input position-input" id="pos-bottom" placeholder="底部距离"
+                         ${this.isPositionInputEnabled('bottom') ? '' : 'disabled'} />
+                </div>
+                <div class="position-input-group">
+                  <label class="position-label">Left:</label>
+                  <input type="number" value="${this.getPositionValue('left')}"
+                         class="controller-input position-input" id="pos-left" placeholder="左边距离"
+                         ${this.isPositionInputEnabled('left') ? '' : 'disabled'} />
+                </div>
+                <div class="position-input-group">
+                  <label class="position-label">Right:</label>
+                  <input type="number" value="${this.getPositionValue('right')}"
+                         class="controller-input position-input" id="pos-right" placeholder="右边距离"
+                         ${this.isPositionInputEnabled('right') ? '' : 'disabled'} />
+                </div>
               </div>
-              <div class="position-input-group">
-                <label class="position-label">Bottom:</label>
-                <input type="number" value="${this.getPositionValue('bottom')}"
-                       class="controller-input position-input" id="pos-bottom" placeholder="底部距离"
-                       ${this.isPositionInputEnabled('bottom') ? '' : 'disabled'} />
-              </div>
-              <div class="position-input-group">
-                <label class="position-label">Left:</label>
-                <input type="number" value="${this.getPositionValue('left')}"
-                       class="controller-input position-input" id="pos-left" placeholder="左边距离"
-                       ${this.isPositionInputEnabled('left') ? '' : 'disabled'} />
-              </div>
-              <div class="position-input-group">
-                <label class="position-label">Right:</label>
-                <input type="number" value="${this.getPositionValue('right')}"
-                       class="controller-input position-input" id="pos-right" placeholder="右边距离"
-                       ${this.isPositionInputEnabled('right') ? '' : 'disabled'} />
+              <div class="position-shortcuts">
+                <button class="shortcut-btn" id="move-top" title="贴顶部">↑</button>
+                <button class="shortcut-btn" id="move-left" title="贴左边">←</button>
+                <button class="shortcut-btn" id="move-right" title="贴右边">→</button>
+                <button class="shortcut-btn" id="move-bottom" title="贴底部">↓</button>
               </div>
             </div>
-            <div class="position-shortcuts">
-              <button class="shortcut-btn" id="move-top" title="贴顶部">↑</button>
-              <button class="shortcut-btn" id="move-left" title="贴左边">←</button>
-              <button class="shortcut-btn" id="move-right" title="贴右边">→</button>
-              <button class="shortcut-btn" id="move-bottom" title="贴底部">↓</button>
-            </div>
-          </div>
 
-          <div class="controller-row">
-            <label class="controller-label">尺寸:</label>
-            <input type="number" value="${this.state.size.width}"
-                   class="controller-input" id="size-w" placeholder="宽" />
-            <input type="number" value="${this.state.size.height}"
-                   class="controller-input" id="size-h" placeholder="高" />
-            <button class="aspect-ratio-btn ${this.maintainAspectRatio ? 'active' : ''}"
-                    id="aspect-ratio-toggle" title="切换宽高比模式">🔗</button>
-            <div class="size-shortcuts">
-              <button class="shortcut-btn" id="fit-width" title="适应宽度">W</button>
-              <button class="shortcut-btn" id="fit-height" title="适应高度">H</button>
-              <button class="shortcut-btn" id="original-size" title="原图尺寸">1:1</button>
+            <div class="controller-row">
+              <label class="controller-label">尺寸:</label>
+              <input type="number" value="${this.state.size.width}"
+                     class="controller-input" id="size-w" placeholder="宽" />
+              <input type="number" value="${this.state.size.height}"
+                     class="controller-input" id="size-h" placeholder="高" />
+              <button class="aspect-ratio-btn ${this.maintainAspectRatio ? 'active' : ''}"
+                      id="aspect-ratio-toggle" title="切换宽高比模式">🔗</button>
+              <div class="size-shortcuts">
+                <button class="shortcut-btn" id="fit-width" title="适应宽度">W</button>
+                <button class="shortcut-btn" id="fit-height" title="适应高度">H</button>
+                <button class="shortcut-btn" id="original-size" title="原图尺寸">1:1</button>
+              </div>
             </div>
-          </div>
 
-          <div class="controller-actions">
-            <button class="controller-btn" id="visibility-btn">
-              ${this.state.visible ? '隐藏' : '显示'}
-            </button>
-            <button class="controller-btn ${this.state.frozen ? 'active' : ''}" id="freeze-btn">
-              ${this.state.frozen ? '解锁' : '锁定'}
-            </button>
-            <button class="controller-btn ${this.state.freezed ? 'active' : ''}" id="freezed-btn">
-              ${this.state.freezed ? '解冻' : '冻结'}
-            </button>
-            <button class="controller-btn" id="reset-btn">原图</button>
+            <div class="controller-actions">
+              <button class="controller-btn" id="visibility-btn">
+                ${this.state.visible ? '隐藏' : '显示'}
+              </button>
+              <button class="controller-btn ${this.state.frozen ? 'active' : ''}" id="freeze-btn">
+                ${this.state.frozen ? '解锁' : '锁定'}
+              </button>
+              <button class="controller-btn ${this.state.freezed ? 'active' : ''}" id="freezed-btn">
+                ${this.state.freezed ? '解冻' : '冻结'}
+              </button>
+              <button class="controller-btn" id="reset-btn">原图</button>
+            </div>
           </div>
         </div>
       </div>
@@ -539,33 +409,226 @@ class VisionCheckManager {
   private bindControllerEvents(): void {
     if (!this.controller) return
 
-    // 控制器拖拽
-    const toggle = this.controller.querySelector('#controller-toggle')
-    const panel = this.controller.querySelector('#controller-panel')
+    // 控制器头部拖拽
+    const header = this.controller.querySelector('#controller-header')
+    header?.addEventListener('mousedown', (e) => this.handleControllerMouseDown(e as MouseEvent))
 
-    // 控制器单击切换和拖拽
-    toggle?.addEventListener('mousedown', (e) => this.handleControllerMouseDown(e as MouseEvent))
-    toggle?.addEventListener('click', (e) => {
-      // 如果没有拖拽，则切换面板
-      if (!this.isControllerDragging) {
-        const isVisible = panel?.classList.contains('visible')
-        if (isVisible) {
-          panel?.classList.remove('visible')
-        } else {
-          this.updatePanelPosition()
-          panel?.classList.add('visible')
-        }
-      }
-      e.stopPropagation()
+    // 透明度滑块
+    const opacitySlider = this.controller.querySelector('#opacity-slider') as HTMLInputElement
+    const opacityValue = this.controller.querySelector('#opacity-value')
+    opacitySlider?.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement
+      this.state.opacity = parseInt(target.value)
+      if (opacityValue) opacityValue.textContent = `${this.state.opacity}%`
+      this.updateStyles()
+      this.debouncedSaveState()
     })
 
-    // 使用公共方法绑定输入框事件
-    this.bindInputEvents()
-    this.bindButtonEvents()
+    // 混合模式选择
+    const blendMode = this.controller.querySelector('#blend-mode') as HTMLSelectElement
+    blendMode?.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement
+      this.updateImageBlendMode(target.value)
+      this.debouncedSaveState()
+    })
 
+    // 位置模式选择器
+    const positionMode = this.controller.querySelector('#position-mode') as HTMLSelectElement
+    positionMode?.addEventListener('change', (e) => {
+      if (this.state.frozen) return
+      this.state.positionMode = (e.target as HTMLSelectElement).value as any
+      this.updateStyles()
+      this.updateControllerValues()
+      this.debouncedSaveState()
+    })
 
+    // 位置输入框
+    const positionInputs = [
+      { id: '#pos-top', update: (v: number) => this.state.position.y = v },
+      { id: '#pos-bottom', update: (v: number) => this.state.position.y = v },
+      { id: '#pos-left', update: (v: number) => this.state.position.x = v },
+      { id: '#pos-right', update: (v: number) => this.state.position.x = v }
+    ]
 
+    positionInputs.forEach(({ id, update }) => {
+      const input = this.controller!.querySelector(id) as HTMLInputElement
+      input?.addEventListener('input', (e) => {
+        if (this.state.frozen) return
+        const value = parseInt((e.target as HTMLInputElement).value) || 0
+        update(value)
+        this.updateStyles()
+        this.debouncedSaveState()
+      })
+    })
 
+    // 尺寸输入框
+    const sizeW = this.controller.querySelector('#size-w') as HTMLInputElement
+    const sizeH = this.controller.querySelector('#size-h') as HTMLInputElement
+
+    sizeW?.addEventListener('input', (e) => {
+      if (this.state.frozen) return
+      const target = e.target as HTMLInputElement
+      const value = parseInt(target.value) || 1
+      this.updateImageSize('width', value)
+    })
+
+    sizeH?.addEventListener('input', (e) => {
+      if (this.state.frozen) return
+      const target = e.target as HTMLInputElement
+      const value = parseInt(target.value) || 1
+      this.updateImageSize('height', value)
+    })
+
+    // 宽高比切换按钮
+    const aspectRatioBtn = this.controller.querySelector('#aspect-ratio-toggle')
+    aspectRatioBtn?.addEventListener('click', () => {
+      if (this.state.frozen) return
+      this.maintainAspectRatio = !this.maintainAspectRatio
+      this.updateControllerValues()
+    })
+
+    // 位置快捷按钮
+    const positionButtons = [
+      { id: '#move-top', action: () => this.snapToEdge('top') },
+      { id: '#move-bottom', action: () => this.snapToEdge('bottom') },
+      { id: '#move-left', action: () => this.snapToEdge('left') },
+      { id: '#move-right', action: () => this.snapToEdge('right') }
+    ]
+
+    positionButtons.forEach(({ id, action }) => {
+      const button = this.controller!.querySelector(id)
+      button?.addEventListener('click', () => {
+        if (this.state.frozen) return
+        action()
+      })
+    })
+
+    // 尺寸快捷按钮
+    const sizeButtons = [
+      { id: '#fit-width', action: () => this.fitToViewport('width') },
+      { id: '#fit-height', action: () => this.fitToViewport('height') },
+      { id: '#original-size', action: () => this.resetToOriginal() }
+    ]
+
+    sizeButtons.forEach(({ id, action }) => {
+      const button = this.controller!.querySelector(id)
+      button?.addEventListener('click', () => {
+        if (this.state.frozen) return
+        action()
+      })
+    })
+
+    // 功能按钮
+    const visibilityBtn = this.controller.querySelector('#visibility-btn')
+    const freezeBtn = this.controller.querySelector('#freeze-btn')
+    const freezedBtn = this.controller.querySelector('#freezed-btn')
+    const resetBtn = this.controller.querySelector('#reset-btn')
+
+    visibilityBtn?.addEventListener('click', () => this.toggleVisibility())
+    freezeBtn?.addEventListener('click', () => this.toggleFreeze())
+    freezedBtn?.addEventListener('click', () => this.toggleFreezed())
+    resetBtn?.addEventListener('click', () => this.resetToOriginal())
+  }
+
+  // 更新图片混合模式
+  private updateImageBlendMode(blendMode: string): void {
+    if (this.imageElement) {
+      this.imageElement.style.mixBlendMode = blendMode
+    }
+  }
+
+  // 快速定位到边缘
+  private snapToEdge(edge: 'top' | 'bottom' | 'left' | 'right'): void {
+    this.state.positionMode = edge
+    this.updateStyles()
+    this.updateControllerValues()
+    this.debouncedSaveState()
+  }
+
+  // 更新图片尺寸
+  private updateImageSize(dimension: 'width' | 'height', value: number): void {
+    if (this.maintainAspectRatio && this.state.originalSize.width && this.state.originalSize.height) {
+      // 保持宽高比模式
+      const aspectRatio = this.state.originalSize.width / this.state.originalSize.height
+
+      if (dimension === 'width') {
+        this.state.size.width = value
+        this.state.size.height = Math.round(value / aspectRatio)
+      } else {
+        this.state.size.height = value
+        this.state.size.width = Math.round(value * aspectRatio)
+      }
+    } else {
+      // 自由调整模式
+      this.state.size[dimension] = value
+    }
+
+    this.updateStyles()
+    this.updateControllerValues()
+    this.debouncedSaveState()
+  }
+
+  // 适应视口
+  private fitToViewport(dimension: 'width' | 'height'): void {
+    if (!this.state.originalSize.width || !this.state.originalSize.height) return
+
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const { width: origWidth, height: origHeight } = this.state.originalSize
+
+    if (dimension === 'width') {
+      // 适应宽度，按比例缩放高度
+      const scale = viewportWidth / origWidth
+      this.state.size = {
+        width: viewportWidth,
+        height: Math.round(origHeight * scale)
+      }
+    } else {
+      // 适应高度，按比例缩放宽度
+      const scale = viewportHeight / origHeight
+      this.state.size = {
+        width: Math.round(origWidth * scale),
+        height: viewportHeight
+      }
+    }
+
+    this.updateStyles()
+    this.updateControllerValues()
+    this.debouncedSaveState()
+  }
+
+  // 绑定窗口大小变化处理
+  private bindWindowResizeHandler(): void {
+    const resizeHandler = () => {
+      this.constrainControllerPosition()
+    }
+
+    window.addEventListener('resize', resizeHandler)
+
+    // 清理时移除监听器
+    const originalDeactivate = this.deactivate.bind(this)
+    this.deactivate = () => {
+      window.removeEventListener('resize', resizeHandler)
+      originalDeactivate()
+    }
+  }
+
+  // 确保控制器位置在可视区内
+  private constrainControllerPosition(): void {
+    const panelWidth = 300
+    const panelHeight = 280
+    const margin = 10 // 边距10px
+    const maxX = window.innerWidth - panelWidth - margin
+    const maxY = window.innerHeight - panelHeight - margin
+
+    // 调整位置确保在可视区内，保持10px边距
+    this.controllerPosition.x = Math.max(margin, Math.min(this.controllerPosition.x, maxX))
+    this.controllerPosition.y = Math.max(margin, Math.min(this.controllerPosition.y, maxY))
+
+    // 更新控制器样式
+    if (this.controller) {
+      this.controller.style.cssText = this.getControllerStyle()
+    }
   }
 
   private handleControllerMouseDown(e: MouseEvent): void {
@@ -596,13 +659,7 @@ class VisionCheckManager {
     e.stopPropagation()
   }
 
-  private snapToEdge(edge: 'top' | 'bottom' | 'left' | 'right'): void {
-    this.updateStateAndSave(() => {
-      // 直接设置定位模式，让CSS处理具体的定位
-      this.state.positionMode = edge
-      // 位置值保持不变，只改变定位模式
-    })
-  }
+
 
   private updateStyles(): void {
     if (this.imageElement) {
@@ -802,19 +859,20 @@ class VisionCheckManager {
       const deltaX = e.clientX - this.dragStart.x
       const deltaY = e.clientY - this.dragStart.y
 
-      // 控制器绝对位置，限制在可视区域内
+      // 控制器绝对位置，限制在可视区域内，保持10px边距
+      const panelWidth = 300
+      const panelHeight = 280
+      const margin = 10 // 边距10px
+      const maxX = window.innerWidth - panelWidth - margin
+      const maxY = window.innerHeight - panelHeight - margin
+
       this.controllerPosition = {
-        x: this.elementStart.x + deltaX,
-        y: this.elementStart.y + deltaY
+        x: Math.max(margin, Math.min(this.elementStart.x + deltaX, maxX)),
+        y: Math.max(margin, Math.min(this.elementStart.y + deltaY, maxY))
       }
 
       if (this.controller) {
         this.controller.style.cssText = this.getControllerStyle()
-        // 拖拽时更新面板位置
-        const panel = this.controller.querySelector('.controller-panel')
-        if (panel?.classList.contains('visible')) {
-          this.updatePanelPosition()
-        }
       }
     }
   }
@@ -873,9 +931,6 @@ class VisionCheckManager {
         break
       case 'z':
         this.toggleFreezed()
-        break
-      case 't':
-        this.toggleController()
         break
       case 'f':
         this.toggleControllerVisibility()
@@ -936,139 +991,26 @@ class VisionCheckManager {
     })
   }
 
-  private toggleController(): void {
-    if (!this.controller) return
-
-    const panel = this.controller.querySelector('#controller-panel')
-    const isVisible = panel?.classList.contains('visible')
-
-    if (isVisible) {
-      panel?.classList.remove('visible')
-    } else {
-      this.updatePanelPosition()
-      panel?.classList.add('visible')
+  private toggleControllerVisibility(): void {
+    if (this.controller) {
+      const isHidden = this.controller.style.display === 'none'
+      this.controller.style.display = isHidden ? 'block' : 'none'
+      this.state.toolbarVisible = isHidden
+      this.debouncedSaveState()
     }
   }
+
+
 
   private resetToOriginal(): void {
     if (this.state.originalSize.width && this.state.originalSize.height) {
-      this.updateStateAndSave(() => {
-        this.state.size = { ...this.state.originalSize }
-      })
+      this.state.size = { ...this.state.originalSize }
+      this.updateStyles()
+      this.debouncedSaveState()
     }
   }
 
-  private fitToViewport(dimension: 'width' | 'height'): void {
-    if (!this.state.originalSize.width || !this.state.originalSize.height) return
 
-    this.updateStateAndSave(() => {
-      const viewportWidth = window.innerWidth
-      const viewportHeight = window.innerHeight
-      const { width: origWidth, height: origHeight } = this.state.originalSize
-
-      if (dimension === 'width') {
-        // 适应宽度，按比例缩放高度
-        const scale = viewportWidth / origWidth
-        this.state.size = {
-          width: viewportWidth,
-          height: Math.round(origHeight * scale)
-        }
-      } else {
-        // 适应高度，按比例缩放宽度
-        const scale = viewportHeight / origHeight
-        this.state.size = {
-          width: Math.round(origWidth * scale),
-          height: viewportHeight
-        }
-      }
-    })
-  }
-
-  private toggleControllerVisibility(): void {
-    if (this.controller) {
-      this.updateStateAndSave(() => {
-        const isHidden = this.controller!.style.display === 'none'
-        this.controller!.style.display = isHidden ? 'block' : 'none'
-        this.state.toolbarVisible = isHidden
-      })
-    }
-  }
-
-  private updatePanelPosition(): void {
-    if (!this.controller) return
-
-    const panel = this.controller.querySelector('.controller-panel')
-    if (!panel) return
-
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-    const controllerX = this.controllerPosition.x
-    const controllerY = this.controllerPosition.y
-
-    // 移除所有位置类
-    panel.classList.remove('position-left', 'position-top', 'position-right', 'position-bottom')
-
-    // 根据控制器位置智能调整面板位置
-    const panelWidth = 320 // 面板最大宽度
-    const panelHeight = 250 // 面板大概高度
-    const margin = 20 // 边距
-
-    let positionClass = ''
-
-    // 优先级：右侧 > 左侧 > 上方 > 下方
-
-    // 检查右侧空间
-    if (controllerX + 60 + panelWidth <= viewportWidth - margin) {
-      // 右侧有足够空间
-      positionClass = 'position-right'
-    }
-    // 检查左侧空间
-    else if (controllerX - panelWidth >= margin) {
-      // 左侧有足够空间
-      positionClass = 'position-left'
-    }
-    // 检查上方空间
-    else if (controllerY - panelHeight >= margin) {
-      // 上方有足够空间
-      positionClass = 'position-top'
-    }
-    // 检查下方空间
-    else if (controllerY + 60 + panelHeight <= viewportHeight - margin) {
-      // 下方有足够空间
-      positionClass = 'position-bottom'
-    }
-    // 默认显示在上方（即使空间不足）
-    else {
-      positionClass = 'position-top'
-    }
-
-    if (positionClass) {
-      panel.classList.add(positionClass)
-    }
-  }
-
-  private updateImageSize(dimension: 'width' | 'height', value: number): void {
-    this.updateStateAndSave(() => {
-      if (this.maintainAspectRatio && this.state.originalSize.width && this.state.originalSize.height) {
-        // 保持宽高比模式
-        const aspectRatio = this.state.originalSize.width / this.state.originalSize.height
-
-        if (dimension === 'width') {
-          this.state.size.width = value
-          this.state.size.height = Math.round(value / aspectRatio)
-        } else {
-          this.state.size.height = value
-          this.state.size.width = Math.round(value * aspectRatio)
-        }
-      } else {
-        // 自由调整模式
-        this.state.size[dimension] = value
-      }
-
-      // 更新控制器值
-      this.updateControllerValues()
-    })
-  }
 
   // ==================== 存储管理 ====================
 

@@ -89,10 +89,6 @@
             <span>显示/隐藏整个控制器</span>
           </div>
           <div class="shortcut-item">
-            <kbd>T</kbd>
-            <span>切换控制面板展开/收起</span>
-          </div>
-          <div class="shortcut-item">
             <kbd>L</kbd>
             <span>锁定/解锁图片位置</span>
           </div>

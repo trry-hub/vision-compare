@@ -63,91 +63,507 @@ $z-index-handle: 999999999;
     align-items: center !important;
   }
 
-  .controller-toggle {
-    width: 50px !important;
-    height: 50px !important;
-    background: $bg-white !important;
-    border: 2px solid $primary-color !important;
-    border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    cursor: move !important;
-    box-shadow: $shadow !important;
-    backdrop-filter: $backdrop-blur !important;
-    -webkit-backdrop-filter: $backdrop-blur !important;
-    transition: all 0.3s ease !important;
-    margin-bottom: 10px !important;
-
-    .toggle-icon {
-      font-size: 20px !important;
-    }
-
-    &:hover {
-      background: white !important;
-      border-color: $primary-hover !important;
-      transform: scale(1.05) !important;
-    }
-  }
-
   .controller-panel {
-    position: absolute !important;
+    position: relative !important;
     background: rgba(255, 255, 255, 0.75) !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: $border-radius !important;
-    padding: 16px !important;
+    padding: 0 !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
     backdrop-filter: blur(20px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
     min-width: 280px !important;
-    max-width: 320px !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    transform: translateY(10px) !important;
+    width: auto !important;
+    max-width: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     z-index: 999999998 !important;
 
-    // 默认在控制器上方显示
-    bottom: 60px !important;
-    right: 0 !important;
-
-    &.visible {
-      opacity: 1 !important;
-      visibility: visible !important;
-      transform: translateY(0) !important;
+    &:hover {
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
     }
 
-    // 当控制器在屏幕右侧时，面板显示在左侧
-    &.position-left {
-      right: 60px !important;
-      bottom: 0 !important;
-      left: auto !important;
-      top: auto !important;
+
+  }
+
+  .controller-header {
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px 16px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: $border-radius $border-radius 0 0 !important;
+    cursor: move !important;
+    user-select: none !important;
+
+    .drag-icon {
+      font-size: 16px !important;
+      color: #999 !important;
+      margin-right: 8px !important;
+      line-height: 1 !important;
+      transform: rotate(90deg) !important;
+      letter-spacing: -2px !important;
+      font-weight: bold !important;
+      transition: color 0.2s ease !important;
     }
 
-    // 当控制器在屏幕底部时，面板显示在上方
-    &.position-top {
-      bottom: 60px !important;
-      right: 0 !important;
-      left: auto !important;
-      top: auto !important;
+    .controller-title {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      color: #333 !important;
+      flex: 1 !important;
     }
 
-    // 当控制器在屏幕左侧时，面板显示在右侧
-    &.position-right {
-      left: 60px !important;
-      bottom: 0 !important;
-      right: auto !important;
-      top: auto !important;
+    &:hover {
+      background: rgba(255, 255, 255, 0.95) !important;
+
+      .drag-icon {
+        color: $primary-color !important;
+      }
+    }
+  }
+
+  .controller-body {
+    padding: 16px !important;
+    min-width: 345px;
+  }
+
+  // 控制器行布局
+  .controller-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+
+  // 标签样式
+  .controller-label {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #666 !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+  }
+
+  // 输入框样式
+  .controller-input {
+    padding: 4px 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: #333 !important;
+    width: 60px !important;
+    text-align: center !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: $primary-color !important;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
     }
 
-    // 当控制器在屏幕上方时，面板显示在下方
-    &.position-bottom {
-      top: 60px !important;
-      right: 0 !important;
-      bottom: auto !important;
-      left: auto !important;
+    &:disabled {
+      background: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
     }
+  }
+
+  // 滑块样式
+  .controller-slider {
+    flex: 1 !important;
+    height: 4px !important;
+    background: #e0e0e0 !important;
+    border-radius: 2px !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer !important;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      width: 16px !important;
+      height: 16px !important;
+      border-radius: 50% !important;
+      background: $primary-color !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    &::-moz-range-thumb {
+      width: 16px !important;
+      height: 16px !important;
+      border-radius: 50% !important;
+      background: $primary-color !important;
+      cursor: pointer !important;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+  }
+
+  // 选择框样式
+  .controller-select {
+    padding: 4px 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: #333 !important;
+    min-width: 100px !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 按钮样式
+  .controller-btn {
+    padding: 6px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background: white !important;
+    color: #333 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      border-color: #adb5bd !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      color: white !important;
+      border-color: $primary-color !important;
+    }
+
+    &:disabled {
+      background: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
+      border-color: #e9ecef !important;
+    }
+  }
+
+  // 快捷按钮样式
+  .shortcut-btn {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    background: white !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      color: $primary-color !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 宽高比按钮
+  .aspect-ratio-btn {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    background: white !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      color: $primary-color !important;
+      border-color: $primary-color !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      color: white !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 值显示
+  .controller-value {
+    font-size: 10px !important;
+    color: #999 !important;
+    min-width: 35px !important;
+    text-align: center !important;
+  }
+
+  // 位置输入组
+  .position-inputs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    flex: 1 !important;
+  }
+
+  .position-input-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .position-label {
+    font-size: 9px !important;
+    color: #999 !important;
+    min-width: 30px !important;
+  }
+
+  .position-input {
+    width: 50px !important;
+  }
+
+  // 快捷按钮组
+  .position-shortcuts,
+  .size-shortcuts {
+    display: flex !important;
+    gap: 4px !important;
+  }
+
+  // 操作按钮组
+  .controller-actions {
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid #eee !important;
+  }
+
+  // 标签样式
+  .controller-label {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #666 !important;
+    min-width: 60px !important;
+    white-space: nowrap !important;
+  }
+
+  // 输入框样式
+  .controller-input {
+    padding: 4px 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: #333 !important;
+    width: 60px !important;
+    text-align: center !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: $primary-color !important;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+    }
+
+    &:disabled {
+      background: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
+    }
+  }
+
+  // 滑块样式
+  .controller-slider {
+    flex: 1 !important;
+    height: 4px !important;
+    background: #e0e0e0 !important;
+    border-radius: 2px !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    cursor: pointer !important;
+
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none !important;
+      width: 16px !important;
+      height: 16px !important;
+      border-radius: 50% !important;
+      background: $primary-color !important;
+      cursor: pointer !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    &::-moz-range-thumb {
+      width: 16px !important;
+      height: 16px !important;
+      border-radius: 50% !important;
+      background: $primary-color !important;
+      cursor: pointer !important;
+      border: none !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+  }
+
+  // 选择框样式
+  .controller-select {
+    padding: 4px 8px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    background: white !important;
+    color: #333 !important;
+    min-width: 100px !important;
+
+    &:focus {
+      outline: none !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 按钮样式
+  .controller-btn {
+    padding: 6px 12px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background: white !important;
+    color: #333 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      border-color: #adb5bd !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      color: white !important;
+      border-color: $primary-color !important;
+    }
+
+    &:disabled {
+      background: #f5f5f5 !important;
+      color: #999 !important;
+      cursor: not-allowed !important;
+      border-color: #e9ecef !important;
+    }
+  }
+
+  // 快捷按钮样式
+  .shortcut-btn {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    background: white !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      color: $primary-color !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 宽高比按钮
+  .aspect-ratio-btn {
+    width: 24px !important;
+    height: 24px !important;
+    padding: 0 !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    background: white !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+
+    &:hover {
+      background: #f8f9fa !important;
+      color: $primary-color !important;
+      border-color: $primary-color !important;
+    }
+
+    &.active {
+      background: $primary-color !important;
+      color: white !important;
+      border-color: $primary-color !important;
+    }
+  }
+
+  // 值显示
+  .controller-value {
+    font-size: 10px !important;
+    color: #999 !important;
+    min-width: 35px !important;
+    text-align: center !important;
+  }
+
+  // 位置输入组
+  .position-inputs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    flex: 1 !important;
+  }
+
+  .position-input-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+  }
+
+  .position-label {
+    font-size: 9px !important;
+    color: #999 !important;
+    min-width: 30px !important;
+  }
+
+  .position-input {
+    width: 50px !important;
+  }
+
+  // 快捷按钮组
+  .position-shortcuts,
+  .size-shortcuts {
+    display: flex !important;
+    gap: 4px !important;
+  }
+
+  // 操作按钮组
+  .controller-actions {
+    display: flex !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid #eee !important;
   }
 
   .controller-row {
@@ -413,39 +829,6 @@ $z-index-handle: 999999999;
     margin-top: 16px !important;
     padding-top: 16px !important;
     border-top: 1px solid #eee !important;
-  }
-
-  .controller-btn {
-    flex: 1 !important;
-    padding: 8px 12px !important;
-    border: 1px solid $primary-color !important;
-    background: transparent !important;
-    color: $primary-color !important;
-    border-radius: $border-radius-sm !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-
-    &:hover {
-      background: $primary-color !important;
-      color: white !important;
-    }
-
-    &.active {
-      background: $primary-color !important;
-      color: white !important;
-    }
-
-    &.danger {
-      border-color: $danger-color !important;
-      color: $danger-color !important;
-
-      &:hover {
-        background: $danger-color !important;
-        color: white !important;
-      }
-    }
   }
 }
 
