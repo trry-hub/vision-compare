@@ -1,0 +1,147 @@
+/**
+ * SCSS 混入定义
+ */
+
+@import './variables.scss';
+
+// 布局混入
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+}
+
+@mixin flex-center-column {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// 按钮基础样式
+@mixin button-base {
+  border: none;
+  border-radius: $vc-border-radius-md;
+  cursor: pointer;
+  transition: $vc-transition-fast;
+  user-select: none;
+  white-space: nowrap;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+
+// 输入框基础样式
+@mixin input-base {
+  border: 1px solid $vc-input-border;
+  border-radius: $vc-border-radius-sm;
+  background: $vc-input-bg;
+  color: $vc-text-primary;
+  font-size: $vc-font-size-normal;
+  
+  &:focus {
+    outline: none;
+    border-color: $vc-primary-color;
+    box-shadow: 0 0 0 1px $vc-border-primary;
+  }
+  
+  &:disabled,
+  &.disabled {
+    background: $vc-bg-disabled;
+    color: $vc-text-disabled;
+    cursor: not-allowed;
+  }
+}
+
+// 滑块基础样式
+@mixin slider-base {
+  appearance: none;
+  background: $vc-text-secondary;
+  border-radius: $vc-border-radius-sm;
+  outline: none;
+  
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: $vc-primary-color;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid $vc-text-primary;
+  }
+  
+  &::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: $vc-primary-color;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid $vc-text-primary;
+  }
+}
+
+// 选择框基础样式
+@mixin select-base {
+  @include input-base;
+  cursor: pointer;
+  
+  option {
+    background: rgba(0, 0, 0, 0.9);
+    color: $vc-text-primary;
+  }
+}
+
+// 卡片样式
+@mixin card-base {
+  background: $vc-bg-dark;
+  backdrop-filter: blur(20px);
+  border: 1px solid $vc-border-light;
+  border-radius: $vc-border-radius-lg;
+  box-shadow: $vc-shadow-medium;
+}
+
+// 文本截断
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// 隐藏滚动条
+@mixin hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// 响应式断点
+@mixin mobile {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: 769px) and (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: 1025px) {
+    @content;
+  }
+}

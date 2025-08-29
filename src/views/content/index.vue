@@ -1,74 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick, computed, useTemplateRef } from 'vue'
-import { useEventListener, useElementSize } from '@vueuse/core'
+import { ref, reactive, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { useEventListener } from '@vueuse/core'
+import { StorageManager } from '../../utils/storage'
+import { BLEND_MODE_OPTIONS } from '../../utils/constants'
 
-const controllerPanelRef = useTemplateRef('controllerPanelRef')
-const controllerPanelSize = useElementSize(controllerPanelRef, undefined,{ box: 'border-box' })
-
-// 统一存储管理
-const STORAGE_KEY = 'vision-compare-state'
-const FROZEN_STATE_KEY = 'vision-compare-frozen'
-
-// 存储管理器
-const StorageManager = {
-  // 获取完整状态
-  getState() {
-    try {
-      const data = sessionStorage.getItem(STORAGE_KEY)
-      return data ? JSON.parse(data) : {}
-    } catch (error) {
-      console.error('读取状态失败:', error)
-      return {}
-    }
-  },
-
-  // 保存完整状态
-  setState(state: any) {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch (error) {
-      console.error('保存状态失败:', error)
-    }
-  },
-
-  // 更新部分状态
-  updateState(updates: any) {
-    const currentState = this.getState()
-    const newState = { ...currentState, ...updates }
-    this.setState(newState)
-  },
-
-  // 获取冻结状态
-  getFrozenState() {
-    try {
-      const data = sessionStorage.getItem(FROZEN_STATE_KEY)
-      return data ? JSON.parse(data) : null
-    } catch (error) {
-      console.error('读取冻结状态失败:', error)
-      return null
-    }
-  },
-
-  // 保存冻结状态
-  setFrozenState(state: any) {
-    try {
-      sessionStorage.setItem(FROZEN_STATE_KEY, JSON.stringify(state))
-    } catch (error) {
-      console.error('保存冻结状态失败:', error)
-    }
-  },
-
-  // 清理所有状态
-  clearAll() {
-    try {
-      sessionStorage.removeItem(STORAGE_KEY)
-      sessionStorage.removeItem(FROZEN_STATE_KEY)
-      console.log('所有状态已清理')
-    } catch (error) {
-      console.error('清理状态失败:', error)
-    }
-  }
-}
+// 移除本地StorageManager定义，使用导入的版本
 
 // 状态管理 - 使用响应式状态替代 useStorage
 // 初始化状态
@@ -89,7 +25,6 @@ const initializeState = () => {
     originalSize: { width: 0, height: 0 },
     rotation: savedState.rotation || 0,
     aspectRatioLocked: savedState.aspectRatioLocked !== undefined ? savedState.aspectRatioLocked : true,
-    controllerPosition: savedState.controllerPosition || { x: 0, y: 0 },
     isDragging: false,
     isResizing: false,
     dragOffset: { x: 0, y: 0 },
@@ -117,7 +52,6 @@ const saveState = () => {
     position: state.position,
     rotation: state.rotation,
     aspectRatioLocked: state.aspectRatioLocked,
-    controllerPosition: state.controllerPosition,
     positionMode: state.positionMode,
     positionInputs: state.positionInputs,
     blendMode: state.blendMode
@@ -128,77 +62,6 @@ const saveState = () => {
 // DOM 引用
 const overlayRef = ref<HTMLElement>()
 const imageRef = ref<HTMLImageElement>()
-const controllerRef = ref<HTMLElement>()
-
-// 控制器拖拽状态
-const controllerDragState = reactive({
-  isDragging: false,
-  startX: 0,
-  startY: 0,
-  startPosX: 0,
-  startPosY: 0
-})
-
-// 控制器拖拽处理
-const handleControllerMouseDown = (e: MouseEvent) => {
-  // 只有点击拖拽手柄区域才能拖拽
-  const target = e.target as HTMLElement
-  if (!target.closest('.vc-controller-drag-handle')) {
-    return
-  }
-
-  e.preventDefault()
-  controllerDragState.isDragging = true
-  controllerDragState.startX = e.clientX
-  controllerDragState.startY = e.clientY
-  controllerDragState.startPosX = state.controllerPosition.x
-  controllerDragState.startPosY = state.controllerPosition.y
-
-  document.addEventListener('mousemove', handleControllerMouseMove)
-  document.addEventListener('mouseup', handleControllerMouseUp)
-}
-
-const handleControllerMouseMove = (e: MouseEvent) => {
-  if (!controllerDragState.isDragging) return
-
-  const deltaX = e.clientX - controllerDragState.startX
-  const deltaY = e.clientY - controllerDragState.startY
-
-  const newX = controllerDragState.startPosX + deltaX
-  const newY = controllerDragState.startPosY + deltaY
-
-  // 动态计算控制器尺寸和边界限制
-  const controllerEl = controllerRef.value
-  if (!controllerEl) return
-
-  const rect = controllerEl.getBoundingClientRect()
-  const maxX = window.innerWidth - rect.width
-  const maxY = window.innerHeight - rect.height
-
-  // 确保控制器完全在屏幕内
-  state.controllerPosition.x = Math.max(0, Math.min(maxX, newX))
-  state.controllerPosition.y = Math.max(0, Math.min(maxY, newY))
-}
-
-const handleControllerMouseUp = () => {
-  controllerDragState.isDragging = false
-  document.removeEventListener('mousemove', handleControllerMouseMove)
-  document.removeEventListener('mouseup', handleControllerMouseUp)
-}
-
-// 初始化控制器位置（底部中央长条形）
-const initControllerPosition = () => {
-  const windowWidth = window.innerWidth
-  const windowHeight = window.innerHeight
-  const controllerWidth = Math.min(controllerPanelSize.width.value, windowWidth - 40) // 长条形，最大1400px
-  const controllerHeight = controllerPanelSize.height.value // 长条形高度
-
-  // 总是重新计算位置，确保在屏幕底部中间
-  state.controllerPosition.x = Math.max(0, (windowWidth - controllerWidth) / 2)
-  state.controllerPosition.y = Math.max(0, windowHeight - controllerHeight - 10)
-
-  console.log('控制器位置已设置:', state.controllerPosition)
-}
 
 // 处理图片加载
 const handleImageLoad = () => {
@@ -220,7 +83,6 @@ const handleImageLoad = () => {
 
   // 图片加载完成后，重新设置控制器位置到屏幕底部中间
   nextTick(() => {
-    initControllerPosition()
     state.controllerVisible = true
     console.log('图片加载完成，控制器已显示并定位到底部中间')
   })
@@ -279,8 +141,8 @@ const fitHeight = () => {
 const resetSize = () => {
   state.size.width = state.originalSize.width
   state.size.height = state.originalSize.height
-  state.position.x = (window.innerWidth - state.size.width) / 2
-  state.position.y = (window.innerHeight - state.size.height) / 2
+  state.position.x = 0
+  state.position.y = 0
 }
 
 // 位置模式切换功能已集成到模板的 @change 事件中
@@ -368,84 +230,10 @@ const handleSizeInput = (type: 'width' | 'height', value: number) => {
   }
 }
 
-// 键盘箭头控制
-const handleInputKeydown = (e: KeyboardEvent) => {
-  // 只处理箭头键
-  if (!['ArrowUp', 'ArrowDown'].includes(e.key)) {
-    return
-  }
+// 移除自定义键盘控制，让输入框使用原生行为
 
-  e.preventDefault()
-  e.stopPropagation()
-
-  const target = e.target as HTMLInputElement
-  const currentValue = parseInt(target.value) || 0
-  let newValue = currentValue
-  let step = 1 // 默认步长为1px
-
-  // 根据输入框类型确定最小值和步长
-  let minValue = 0
-  if (target.classList.contains('vc-input') && (target.min === '1' || target.getAttribute('min') === '1')) {
-    minValue = 1 // 尺寸输入框最小值为1
-  }
-
-  // 透明度使用不同的步长
-  if (target.type === 'range') {
-    step = e.shiftKey ? 10 : 5 // 透明度滑块步长更大
-  } else {
-    step = e.shiftKey ? 10 : 1 // 数值输入框步长为1px
-  }
-
-  switch (e.key) {
-    case 'ArrowUp':
-      newValue = currentValue + step
-      // 透明度最大值限制
-      if (target.type === 'range' && target.max) {
-        newValue = Math.min(newValue, parseInt(target.max))
-      }
-      break
-    case 'ArrowDown':
-      newValue = Math.max(minValue, currentValue - step)
-      break
-  }
-
-  target.value = newValue.toString()
-
-  // 触发相应的事件
-  if (target.type === 'range') {
-    // 对于滑块，直接更新v-model绑定的值
-    if (target.classList.contains('vc-slider')) {
-      state.opacity = newValue
-      // 如果已冻结，更新存储
-      if (state.imageFrozen) {
-        updateFrozenState()
-      }
-    }
-  } else {
-    // 对于数值输入框，触发input事件
-    target.dispatchEvent(new Event('input', { bubbles: true }))
-  }
-}
-
-// 混合模式选项
-const blendModeOptions = [
-  { value: 'normal', label: '正常' },
-  { value: 'multiply', label: '正片叠底' },
-  { value: 'screen', label: '滤色' },
-  { value: 'overlay', label: '叠加' },
-  { value: 'soft-light', label: '柔光' },
-  { value: 'hard-light', label: '强光' },
-  { value: 'color-dodge', label: '颜色减淡' },
-  { value: 'color-burn', label: '颜色加深' },
-  { value: 'darken', label: '变暗' },
-  { value: 'lighten', label: '变亮' },
-  { value: 'difference', label: '差值' },
-  { value: 'exclusion', label: '排除' },
-  { value: 'hue', label: '色相' },
-  { value: 'saturation', label: '饱和度' },
-  { value: 'color', label: '颜色' },
-  { value: 'luminosity', label: '明度' }
-]
+// 使用导入的混合模式选项
+const blendModeOptions = BLEND_MODE_OPTIONS
 
 // 计算图片样式
 const imageStyle = computed(() => ({
@@ -477,7 +265,14 @@ const updateFrozenState = () => {
     positionMode: state.positionMode,
     positionInputs: { ...state.positionInputs },
     timestamp: Date.now(),
-    url: window.location.href
+    url: window.location.href,
+    isActive: state.isActive,
+    controllerVisible: state.controllerVisible,
+    controllerExpanded: state.controllerExpanded,
+    imageVisible: state.imageVisible,
+    imageLocked: state.imageLocked,
+    imageFrozen: state.imageFrozen,
+    aspectRatioLocked: state.aspectRatioLocked
   }
 
   StorageManager.setFrozenState(frozenState)
@@ -557,18 +352,6 @@ const handleKeyDown = (e: KeyboardEvent) => {
     case 'arrowright':
       moveImage(e.shiftKey ? 10 : 1, 0)
       e.preventDefault()
-      break
-    case 'w':
-      moveImage(0, -1)
-      break
-    case 'a':
-      moveImage(-1, 0)
-      break
-    case 's':
-      moveImage(0, 1)
-      break
-    case 'd':
-      moveImage(1, 0)
       break
     case 'escape':
       exitComparison()
@@ -763,203 +546,180 @@ onUnmounted(() => {
       :style="imageStyle"
     />
 
-    <!-- 控制器 -->
-    <div
-      v-if="state.controllerVisible"
-      ref="controllerRef"
-      class="vc-controller"
-      :style="{
-        left: state.controllerPosition.x + 'px',
-        top: state.controllerPosition.y + 'px'
-      }"
-      @mousedown="handleControllerMouseDown"
-    >
-      <!-- 控制面板 - 长条形布局 -->
-      <div class="vc-controller-panel" ref="controllerPanelRef">
-        <!-- 拖拽手柄 -->
-        <div class="vc-controller-drag-handle">
-          <span class="vc-drag-icon">⋮⋮</span>
+    <!-- 控制面板 - 长条形布局 -->
+    <div v-if="state.controllerVisible" class="vc-controller-panel">
+      <!-- 透明度控制 -->
+      <div class="vc-control-group">
+        <label class="vc-control-label">透明度</label>
+        <div class="vc-slider-container">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            v-model="state.opacity"
+            class="vc-slider"
+            :disabled="isControllerDisabled"
+          />
+          <span class="vc-slider-value">{{ state.opacity }}%</span>
         </div>
-        <!-- 透明度控制 -->
-        <div class="vc-control-group">
-          <label class="vc-control-label">透明度</label>
-          <div class="vc-slider-container">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              v-model="state.opacity"
-              class="vc-slider"
-              :disabled="isControllerDisabled"
-              @keydown="handleInputKeydown"
-            />
-            <span class="vc-slider-value">{{ state.opacity }}%</span>
-          </div>
-        </div>
-        <!-- 尺寸控制 -->
-        <div class="vc-control-group">
-          <label class="vc-control-label">尺寸</label>
-          <div class="vc-size-controls">
-            <div class="vc-size-inputs">
-              <div class="vc-input-group">
-                <label class="vc-input-label">W</label>
-                <input
-                  type="number"
-                  v-model.number="state.size.width"
-                  @input="(e) => handleSizeInput('width', parseInt((e.target as HTMLInputElement).value) || 1)"
-                  @keydown="handleInputKeydown"
-                  :disabled="isControllerDisabled"
-                  class="vc-input"
-                  min="1"
-                />
-              </div>
-              <div class="vc-input-group">
-                <label class="vc-input-label">H</label>
-                <input
-                  type="number"
-                  v-model.number="state.size.height"
-                  @input="(e) => handleSizeInput('height', parseInt((e.target as HTMLInputElement).value) || 1)"
-                  @keydown="handleInputKeydown"
-                  :disabled="isControllerDisabled"
-                  class="vc-input"
-                  min="1"
-                />
-              </div>
+      </div>
+      <!-- 尺寸控制 -->
+      <div class="vc-control-group">
+        <label class="vc-control-label">尺寸</label>
+        <div class="vc-size-controls">
+          <div class="vc-size-inputs">
+            <div class="vc-input-group">
+              <label class="vc-input-label">W</label>
+              <input
+                type="number"
+                v-model.number="state.size.width"
+                @keydown.stop="(e) => handleSizeInput('width', parseInt((e.target as HTMLInputElement).value) || 1)"
+                :disabled="isControllerDisabled"
+                class="vc-input"
+                min="1"
+              />
             </div>
-            <button @click="fitWidth" class="vc-btn vc-btn-sm" title="适应宽度" :disabled="isControllerDisabled">适宽</button>
-            <button @click="fitHeight" class="vc-btn vc-btn-sm" title="适应高度" :disabled="isControllerDisabled">适高</button>
-            <button @click="resetSize" class="vc-btn vc-btn-sm" title="原始尺寸" :disabled="isControllerDisabled">1:1</button>
-            <button
-              @click="state.aspectRatioLocked = !state.aspectRatioLocked"
-              class="vc-btn vc-btn-sm"
-              :class="{ 'vc-active': state.aspectRatioLocked }"
-              :disabled="isControllerDisabled"
-              title="宽高比锁定"
-            >
-              🔗
-            </button>
+            <div class="vc-input-group">
+              <label class="vc-input-label">H</label>
+              <input
+                type="number"
+                v-model.number="state.size.height"
+                @keydown.stop="(e) => handleSizeInput('height', parseInt((e.target as HTMLInputElement).value) || 1)"
+                :disabled="isControllerDisabled"
+                class="vc-input"
+                min="1"
+              />
+            </div>
           </div>
+          <button @click="fitWidth" class="vc-btn vc-btn-sm" title="适应宽度" :disabled="isControllerDisabled">适宽</button>
+          <button @click="fitHeight" class="vc-btn vc-btn-sm" title="适应高度" :disabled="isControllerDisabled">适高</button>
+          <button @click="resetSize" class="vc-btn vc-btn-sm" title="原始尺寸" :disabled="isControllerDisabled">1:1</button>
+          <button
+            @click="state.aspectRatioLocked = !state.aspectRatioLocked"
+            class="vc-btn vc-btn-sm"
+            :class="{ 'vc-active': state.aspectRatioLocked }"
+            :disabled="isControllerDisabled"
+            title="宽高比锁定"
+          >
+            🔗
+          </button>
         </div>
+      </div>
 
-        <!-- 位置控制 -->
-        <div class="vc-control-group">
-          <label class="vc-control-label">位置</label>
+      <!-- 位置控制 -->
+      <div class="vc-control-group">
+        <label class="vc-control-label">位置</label>
 
-          <!-- 位置模式选择 -->
-          <div class="vc-position-mode">
-            <select v-model="state.positionMode" @change="updatePositionByMode" class="vc-select" :disabled="isControllerDisabled">
-              <option value="free">自由</option>
-              <option value="top-left">左上</option>
-              <option value="top-right">右上</option>
-              <option value="bottom-left">左下</option>
-              <option value="bottom-right">右下</option>
-              <option value="center">居中</option>
-            </select>
+        <!-- 位置模式选择 -->
+        <div class="vc-position-mode">
+          <select v-model="state.positionMode" @change="updatePositionByMode" class="vc-select" :disabled="isControllerDisabled">
+            <option value="free">自由</option>
+            <option value="top-left">左上</option>
+            <option value="top-right">右上</option>
+            <option value="bottom-left">左下</option>
+            <option value="bottom-right">右下</option>
+            <option value="center">居中</option>
+          </select>
 
-            <!-- 位置输入框 -->
-            <div class="vc-position-inputs">
-              <div class="vc-input-row">
-                <div class="vc-input-group">
-                  <label class="vc-input-label">T</label>
-                  <input
-                    type="number"
-                    v-model.number="state.positionInputs.top"
-                    @input="updatePositionInput('top', state.positionInputs.top)"
-                    @keydown="handleInputKeydown"
-                    :disabled="isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right'"
-                    class="vc-input"
-                    :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right' }"
-                  />
-                </div>
-                <div class="vc-input-group">
-                  <label class="vc-input-label">L</label>
-                  <input
-                    type="number"
-                    v-model.number="state.positionInputs.left"
-                    @input="updatePositionInput('left', state.positionInputs.left)"
-                    @keydown="handleInputKeydown"
-                    :disabled="isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right'"
-                    class="vc-input"
-                    :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right' }"
-                  />
-                </div>
-                <div class="vc-input-group">
-                  <label class="vc-input-label">B</label>
-                  <input
-                    type="number"
-                    v-model.number="state.positionInputs.bottom"
-                    @input="updatePositionInput('bottom', state.positionInputs.bottom)"
-                    @keydown="handleInputKeydown"
-                    :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right'"
-                    class="vc-input"
-                    :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right' }"
-                  />
-                </div>
-                <div class="vc-input-group">
-                  <label class="vc-input-label">R</label>
-                  <input
-                    type="number"
-                    v-model.number="state.positionInputs.right"
-                    @input="updatePositionInput('right', state.positionInputs.right)"
-                    @keydown="handleInputKeydown"
-                    :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left'"
-                    class="vc-input"
-                    :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left' }"
-                  />
-                </div>
+          <!-- 位置输入框 -->
+          <div class="vc-position-inputs">
+            <div class="vc-input-row">
+              <div class="vc-input-group">
+                <label class="vc-input-label">T</label>
+                <input
+                  type="number"
+                  v-model.number="state.positionInputs.top"
+                  @keydown.stop="updatePositionInput('top', state.positionInputs.top)"
+                  :disabled="isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right'"
+                  class="vc-input"
+                  :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right' }"
+                />
+              </div>
+              <div class="vc-input-group">
+                <label class="vc-input-label">L</label>
+                <input
+                  type="number"
+                  v-model.number="state.positionInputs.left"
+                  @keydown.stop="updatePositionInput('left', state.positionInputs.left)"
+                  :disabled="isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right'"
+                  class="vc-input"
+                  :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right' }"
+                />
+              </div>
+              <div class="vc-input-group">
+                <label class="vc-input-label">B</label>
+                <input
+                  type="number"
+                  v-model.number="state.positionInputs.bottom"
+                  @keydown.stop="updatePositionInput('bottom', state.positionInputs.bottom)"
+                  :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right'"
+                  class="vc-input"
+                  :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right' }"
+                />
+              </div>
+              <div class="vc-input-group">
+                <label class="vc-input-label">R</label>
+                <input
+                  type="number"
+                  v-model.number="state.positionInputs.right"
+                  @keydown.stop="updatePositionInput('right', state.positionInputs.right)"
+                  :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left'"
+                  class="vc-input"
+                  :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left' }"
+                />
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- 混合模式控制 -->
-        <div class="vc-control-group">
-          <label class="vc-control-label">混合模式</label>
-          <div class="vc-blend-controls">
-            <select v-model="state.blendMode" class="vc-blend-select" :disabled="isControllerDisabled">
-              <option
-                v-for="option in blendModeOptions"
-                :key="option.value"
-                :value="option.value"
-              >
-                {{ option.label }}
-              </option>
-            </select>
-          </div>
+      <!-- 混合模式控制 -->
+      <div class="vc-control-group">
+        <label class="vc-control-label">混合</label>
+        <div class="vc-blend-controls">
+          <select v-model="state.blendMode" class="vc-blend-select" :disabled="isControllerDisabled">
+            <option
+              v-for="option in blendModeOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
         </div>
+      </div>
 
-        <!-- 状态控制 -->
-        <div class="vc-control-group">
-          <label class="vc-control-label">状态</label>
-          <div class="vc-toggle-controls">
-            <button
-              @click="state.imageVisible = !state.imageVisible"
-              class="vc-btn vc-btn-sm"
-              :class="{ 'vc-active': state.imageVisible }"
-              title="显示/隐藏图片"
-            >
-              👁️
-            </button>
-            <button
-              @click="toggleLock"
-              class="vc-btn vc-btn-sm"
-              :class="{ 'vc-active': state.imageLocked }"
-              title="锁定/解锁图片（锁定时自动冻结）"
-            >
-              🔒
-            </button>
-            <button
-              @click="toggleFreeze"
-              class="vc-btn vc-btn-sm"
-              :class="{ 'vc-active': state.imageFrozen }"
-              title="冻结/解冻图片（保存当前状态）"
-            >
-              ❄️
-            </button>
-            <button @click="exitComparison" class="vc-btn vc-btn-sm vc-btn-danger" title="退出对比">
-              ❌
-            </button>
-          </div>
+      <!-- 状态控制 -->
+      <div class="vc-control-group">
+        <label class="vc-control-label">状态</label>
+        <div class="vc-toggle-controls">
+          <button
+            @click="state.imageVisible = !state.imageVisible"
+            class="vc-btn vc-btn-sm"
+            :class="{ 'vc-active': state.imageVisible }"
+            title="显示/隐藏图片"
+          >
+            👁️
+          </button>
+          <button
+            @click="toggleLock"
+            class="vc-btn vc-btn-sm"
+            :class="{ 'vc-active': state.imageLocked }"
+            title="锁定/解锁图片（锁定时自动冻结）"
+          >
+            🔒
+          </button>
+          <button
+            @click="toggleFreeze"
+            class="vc-btn vc-btn-sm"
+            :class="{ 'vc-active': state.imageFrozen }"
+            title="冻结/解冻图片（保存当前状态）"
+          >
+            ❄️
+          </button>
+          <button @click="exitComparison" class="vc-btn vc-btn-sm vc-btn-danger" title="退出对比">
+            ❌
+          </button>
         </div>
       </div>
     </div>
@@ -1028,6 +788,7 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
 /* 覆盖层基础样式 */
 .vc-overlay {
   position: fixed;
+  font-size: 14px;
   top: 0;
   left: 0;
   width: 100vw;
@@ -1053,64 +814,65 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   }
 }
 
-/* 控制器样式 */
-.vc-controller {
+/* 控制面板样式 - 响应式设计 */
+.vc-controller-panel {
   position: absolute;
+  bottom: 0;
+  left: 50%;
   pointer-events: auto;
   z-index: $vc-z-index + 1;
-  max-width: 90%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   user-select: none;
-
-  // 控制器内的交互元素
-  input,
-  select,
-  button {
-    cursor: default;
-    pointer-events: auto;
-
-    &:hover:not(:disabled) {
-      cursor: pointer;
-    }
-  }
-}
-
-/* 控制面板样式 - 长条形设计 */
-.vc-controller-panel {
-  position: relative;
-  border-radius: 10px;
+  transform: translateX(-50%);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
   padding: 8px 12px;
   background: $vc-bg-dark;
   backdrop-filter: blur(20px);
   border: 1px solid $vc-border-light;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  gap: 5px 20px;
+  gap: 5px 10px;
   color: $vc-text-primary;
-  flex-wrap: wrap;
+  overflow-x: auto;
   @include flex-center;
-}
 
-/* 拖拽手柄样式 */
-.vc-controller-drag-handle {
-  @include flex-center;
-  padding: 4px 8px;
-  cursor: move;
-  user-select: none;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  // 桌面端默认样式 - 水平布局
+  max-width: 95vw;
 
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+  // 平板端适配 (768px - 1024px)
+  @media (max-width: 1024px) and (min-width: 769px) {
+    max-width: 90vw;
+    padding: 6px 10px;
+    gap: 4px 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  // 移动端适配 (≤768px)
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 95vw;
+    max-height: 60vh;
+    padding: 8px;
+    gap: 6px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 10px;
+
+    // 小屏幕时调整位置，避免遮挡内容
+    bottom: 10px;
+  }
+
+  // 超小屏幕适配 (≤480px)
+  @media (max-width: 480px) {
+    max-width: 98vw;
+    padding: 6px;
+    gap: 4px;
+    font-size: 12px;
   }
 }
 
-.vc-drag-icon {
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: bold;
-  letter-spacing: -2px;
-}
-
-/* 控制组样式 - 水平布局 */
+/* 控制组样式 - 响应式布局 */
 .vc-control-group {
   @include flex-center;
   gap: 5px;
@@ -1118,6 +880,31 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
 
   &:last-child {
     margin-right: 0;
+  }
+
+  // 平板端适配
+  @media (max-width: 1024px) and (min-width: 769px) {
+    gap: 4px;
+  }
+
+  // 移动端适配 - 垂直布局时调整
+  @media (max-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 3px;
+    padding: 3px 0;
   }
 }
 
@@ -1130,13 +917,36 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   &::after {
     content: ':';
   }
+
+  // 移动端适配 - 标签样式调整
+  @media (max-width: 768px) {
+    min-width: 40px;
+    font-size: 13px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    min-width: 35px;
+    font-size: 12px;
+  }
 }
 
-/* 滑块样式 - 长条形适配 */
+/* 滑块样式 - 响应式适配 */
 .vc-slider-container {
   display: flex;
   align-items: center;
   gap: 8px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    flex: 1;
+    gap: 6px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 4px;
+  }
 }
 
 .vc-slider {
@@ -1146,6 +956,24 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
   outline: none;
   appearance: none;
+
+  // 平板端适配
+  @media (max-width: 1024px) and (min-width: 769px) {
+    width: 80px;
+  }
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    width: 60px;
+    flex: 1;
+    min-width: 50px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    width: 50px;
+    min-width: 40px;
+  }
 }
 
 .vc-slider::-webkit-slider-thumb {
@@ -1156,6 +984,12 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid white;
+
+  // 移动端适配 - 增大触摸区域
+  @media (max-width: 768px) {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .vc-slider-value {
@@ -1163,9 +997,21 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   min-width: 20px;
   text-align: right;
   font-size: 12px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    min-width: 25px;
+    font-size: 11px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    min-width: 20px;
+    font-size: 10px;
+  }
 }
 
-/* 按钮样式 - 长条形适配 */
+/* 按钮样式 - 响应式适配 */
 .vc-btn {
   padding: 4px 8px;
   border: none;
@@ -1176,11 +1022,37 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
+
+  // 平板端适配
+  @media (max-width: 1024px) and (min-width: 769px) {
+    padding: 3px 6px;
+    font-size: 13px;
+  }
+
+  // 移动端适配 - 增大触摸区域
+  @media (max-width: 768px) {
+    padding: 6px 10px;
+    min-height: 32px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    padding: 5px 8px;
+    min-height: 28px;
+    font-size: 11px;
+  }
 }
 
 .vc-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
+
+  // 移动端禁用hover效果
+  @media (max-width: 768px) {
+    transform: none;
+  }
 }
 
 .vc-btn.vc-active {
@@ -1191,6 +1063,20 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
 .vc-btn.vc-btn-sm {
   padding: 3px 6px;
   min-width: 24px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    padding: 4px 8px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    padding: 3px 6px;
+    min-width: 24px;
+    min-height: 24px;
+  }
 }
 
 .vc-btn.vc-btn-danger {
@@ -1202,11 +1088,23 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   background: #d70015;
 }
 
-/* 位置控制样式 - 长条形适配 */
+/* 位置控制样式 - 响应式适配 */
 .vc-position-mode {
   display: flex;
   align-items: center;
   gap: 6px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    flex: 1;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 3px;
+  }
 }
 
 .vc-select {
@@ -1216,24 +1114,64 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
   color: white;
   min-width: 80px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    min-width: 60px;
+    padding: 2px 4px;
+    font-size: 12px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    min-width: 50px;
+    font-size: 11px;
+  }
 }
 
 .vc-position-inputs {
   display: flex;
   gap: 6px;
   align-items: center;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 2px;
+  }
 }
 
 .vc-input-row {
   display: flex;
   gap: 4px;
   align-items: center;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 2px;
+  }
 }
 
 .vc-input-group {
   display: flex;
   align-items: center;
   gap: 2px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 1px;
+  }
 }
 
 .vc-input-label {
@@ -1243,6 +1181,18 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   text-align: right;
   &:after {
     content: ':'
+  }
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    min-width: 15px;
+    font-size: 11px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    min-width: 12px;
+    font-size: 10px;
   }
 }
 
@@ -1255,6 +1205,23 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
   color: white;
   font-size: 12px;
+
+  // 移动端适配 - 增大触摸区域
+  @media (max-width: 768px) {
+    width: 35px;
+    padding: 2px 4px;
+    min-height: 24px;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    width: 30px;
+    padding: 1px 3px;
+    min-height: 20px;
+    font-size: 10px;
+  }
 }
 
 .vc-input:focus {
@@ -1269,10 +1236,15 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   cursor: not-allowed;
 }
 
-/* 混合模式控制样式 */
+/* 混合模式控制样式 - 响应式适配 */
 .vc-blend-controls {
   display: flex;
   align-items: center;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    flex: 1;
+  }
 }
 
 .vc-blend-select {
@@ -1283,6 +1255,26 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   color: white;
   min-width: 100px;
   cursor: pointer;
+
+  // 平板端适配
+  @media (max-width: 1024px) and (min-width: 769px) {
+    min-width: 80px;
+    font-size: 13px;
+  }
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    min-width: 70px;
+    padding: 2px 4px;
+    font-size: 12px;
+    flex: 1;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    min-width: 60px;
+    font-size: 11px;
+  }
 }
 
 .vc-blend-select:focus {
@@ -1296,18 +1288,42 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   color: white;
 }
 
-/* 控制按钮组样式 - 长条形适配 */
+/* 控制按钮组样式 - 响应式适配 */
 .vc-position-controls,
 .vc-size-controls,
 .vc-toggle-controls {
   display: flex;
   gap: 3px;
   align-items: center;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 2px;
+  }
 }
 
 .vc-position-controls {
   display: flex;
   gap: 2px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 3px;
+  }
+}
+
+.vc-size-controls {
+  // 移动端适配
+  @media (max-width: 768px) {
+    flex: 1;
+    justify-content: flex-end;
+  }
 }
 
 .vc-size-inputs {
@@ -1315,5 +1331,26 @@ $vc-disabled-text: rgba(255, 255, 255, 0.3);
   align-items: center;
   gap: 4px;
   margin-right: 8px;
+
+  // 移动端适配
+  @media (max-width: 768px) {
+    gap: 3px;
+    margin-right: 6px;
+    flex-wrap: wrap;
+  }
+
+  // 超小屏幕适配
+  @media (max-width: 480px) {
+    gap: 2px;
+    margin-right: 4px;
+  }
+}
+
+.vc-toggle-controls {
+  // 移动端适配
+  @media (max-width: 768px) {
+    flex: 1;
+    justify-content: flex-end;
+  }
 }
 </style>

@@ -27,7 +27,6 @@ function initVisionCompare() {
     // 创建容器元素
     const div = document.createElement('div')
     div.id = 'vision-compare-content'
-    div.style.cssText = 'position: fixed; top: 0; left: 0; z-index: 999999; pointer-events: none;'
 
     // 确保 body 存在
     if (!document.body) {

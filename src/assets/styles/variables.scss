@@ -1,0 +1,56 @@
+/**
+ * SCSS 变量定义
+ */
+
+// Z-index 层级
+$vc-z-index: 999999;
+$vc-controller-z-index: 1000000;
+
+// 颜色系统
+$vc-primary-color: #4f7cff;
+$vc-danger-color: #ff3b30;
+$vc-success-color: #34c759;
+
+// 背景色
+$vc-bg-dark: rgba(0, 0, 0, 0.85);
+$vc-bg-light: rgba(255, 255, 255, 0.1);
+$vc-bg-disabled: rgba(255, 255, 255, 0.05);
+
+// 边框色
+$vc-border-light: rgba(255, 255, 255, 0.2);
+$vc-border-primary: rgba(79, 124, 255, 0.3);
+
+// 文字颜色
+$vc-text-primary: white;
+$vc-text-secondary: rgba(255, 255, 255, 0.8);
+$vc-text-muted: rgba(255, 255, 255, 0.7);
+$vc-text-disabled: rgba(255, 255, 255, 0.3);
+
+// 输入框样式
+$vc-input-bg: rgba(255, 255, 255, 0.1);
+$vc-input-border: rgba(255, 255, 255, 0.3);
+
+// 字体大小
+$vc-font-size-small: 10px;
+$vc-font-size-normal: 12px;
+$vc-font-size-medium: 14px;
+
+// 间距
+$vc-spacing-xs: 2px;
+$vc-spacing-sm: 4px;
+$vc-spacing-md: 8px;
+$vc-spacing-lg: 12px;
+$vc-spacing-xl: 20px;
+
+// 圆角
+$vc-border-radius-sm: 2px;
+$vc-border-radius-md: 4px;
+$vc-border-radius-lg: 10px;
+
+// 阴影
+$vc-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
+$vc-shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+// 过渡动画
+$vc-transition-fast: 0.2s ease;
+$vc-transition-normal: 0.3s ease;

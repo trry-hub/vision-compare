@@ -1,113 +1,3 @@
-<template>
-  <div class="popup-container">
-    <!-- 头部 -->
-    <div class="popup-header">
-      <div class="header-icon">🎯</div>
-      <div class="header-content">
-        <h1 class="header-title">Vision Compare</h1>
-        <p class="header-subtitle">你的眼睛不是尺</p>
-      </div>
-    </div>
-
-    <!-- 上传状态 -->
-    <div v-if="!isActive" class="upload-section">
-      <div 
-        class="upload-area"
-        :class="{ dragover: isDragOver, uploading: isUploading }"
-        @click="handleUploadClick"
-        @dragover.prevent="handleDragOver"
-        @dragleave.prevent="handleDragLeave"
-        @drop.prevent="handleDrop"
-      >
-        <div class="upload-content">
-          <div class="upload-icon">
-            <div v-if="isUploading" class="loading-spinner">⏳</div>
-            <div v-else>📁</div>
-          </div>
-          <div class="upload-text">
-            <div class="upload-title">{{ isUploading ? '上传中...' : '拖拽或点击上传' }}</div>
-            <div class="upload-subtitle">支持 PNG、JPG、GIF、SVG 格式</div>
-          </div>
-        </div>
-      </div>
-
-      <input 
-        ref="fileInputRef" 
-        type="file" 
-        accept="image/*"
-        @change="handleFileChange" 
-        style="display: none;"
-      >
-
-      <div class="upload-tips">
-        <div class="tip-item">
-          <span class="tip-icon">💡</span>
-          <span class="tip-text">上传设计稿后，会自动覆盖在当前页面上</span>
-        </div>
-        <div class="tip-item">
-          <span class="tip-icon">⌨️</span>
-          <span class="tip-text">支持快捷键操作，提升对比效率</span>
-        </div>
-        <div class="tip-item">
-          <span class="tip-icon">🔧</span>
-          <span class="tip-text">可调节透明度、位置、尺寸等参数</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 激活状态 -->
-    <div v-else class="active-section">
-      <div class="status-card">
-        <div class="status-indicator">
-          <div class="status-dot"></div>
-          <div class="status-text">
-            <div class="status-title">Vision Compare 已激活</div>
-            <div class="status-subtitle">正在当前页面进行视觉对比</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="control-grid">
-        <button @click="handleToggleController" class="control-btn primary">
-          <span class="btn-icon">👁️</span>
-          <span>{{ toolbarVisible ? '隐藏' : '显示' }}</span>
-        </button>
-
-        <button @click="handleUploadClick" class="control-btn secondary">
-          <span class="btn-icon">🔄</span>
-          <span>更换</span>
-        </button>
-
-        <button @click="handleExit" class="control-btn danger">
-          <span class="btn-icon">❌</span>
-          <span>退出</span>
-        </button>
-      </div>
-
-      <div class="shortcuts-info">
-        <div class="shortcuts-title">快捷键</div>
-        <div class="shortcuts-grid">
-          <div class="shortcut-item">
-            <kbd>F</kbd>
-            <span>显示/隐藏控制器</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>L</kbd>
-            <span>锁定/解锁图片</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>V</kbd>
-            <span>显示/隐藏图片</span>
-          </div>
-          <div class="shortcut-item">
-            <kbd>ESC</kbd>
-            <span>退出对比模式</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
@@ -313,8 +203,134 @@ onMounted(() => {
   checkStatus()
 })
 </script>
+<template>
+  <div class="popup-container">
+    <!-- 头部 -->
+    <div class="popup-header">
+      <div class="header-icon">🎯</div>
+      <div class="header-content">
+        <h1 class="header-title">Vision Compare</h1>
+        <p class="header-subtitle">你的眼睛不是尺</p>
+      </div>
+    </div>
 
-<style scoped>
+    <!-- 上传状态 -->
+    <div v-if="!isActive" class="upload-section">
+      <div 
+        class="upload-area"
+        :class="{ dragover: isDragOver, uploading: isUploading }"
+        @click="handleUploadClick"
+        @dragover.prevent="handleDragOver"
+        @dragleave.prevent="handleDragLeave"
+        @drop.prevent="handleDrop"
+      >
+        <div class="upload-content">
+          <div class="upload-icon">
+            <div v-if="isUploading" class="loading-spinner">⏳</div>
+            <div v-else>📁</div>
+          </div>
+          <div class="upload-text">
+            <div class="upload-title">{{ isUploading ? '上传中...' : '拖拽或点击上传' }}</div>
+            <div class="upload-subtitle">支持 PNG、JPG、GIF、SVG 格式</div>
+          </div>
+        </div>
+      </div>
+
+      <input 
+        ref="fileInputRef" 
+        type="file" 
+        accept="image/*"
+        @change="handleFileChange" 
+        style="display: none;"
+      >
+
+      <div class="upload-tips">
+        <div class="tip-item">
+          <span class="tip-icon">💡</span>
+          <span class="tip-text">上传设计稿后，会自动覆盖在当前页面上</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-icon">⌨️</span>
+          <span class="tip-text">支持快捷键操作，提升对比效率</span>
+        </div>
+        <div class="tip-item">
+          <span class="tip-icon">🔧</span>
+          <span class="tip-text">可调节透明度、位置、尺寸等参数</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 激活状态 -->
+    <div v-else class="active-section">
+      <div class="status-card">
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          <div class="status-text">
+            <div class="status-title">Vision Compare 已激活</div>
+            <div class="status-subtitle">正在当前页面进行视觉对比</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <button @click="handleToggleController" class="control-btn primary">
+          <span class="btn-icon">👁️</span>
+          <span>{{ toolbarVisible ? '隐藏' : '显示' }}</span>
+        </button>
+
+        <button @click="handleUploadClick" class="control-btn secondary">
+          <span class="btn-icon">🔄</span>
+          <span>更换</span>
+        </button>
+
+        <button @click="handleExit" class="control-btn danger">
+          <span class="btn-icon">❌</span>
+          <span>退出</span>
+        </button>
+      </div>
+
+      <div class="shortcuts-info">
+        <div class="shortcuts-title">快捷键</div>
+        <div class="shortcuts-grid">
+          <div class="shortcut-item">
+            <kbd>F</kbd>
+            <span>显示/隐藏控制器</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>L</kbd>
+            <span>锁定/解锁图片</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Z</kbd>
+            <span>冻结/解冻状态</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>V</kbd>
+            <span>显示/隐藏图片</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>ESC</kbd>
+            <span>退出对比模式</span>
+          </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div class="feature-descriptions">
+          <div class="feature-item">
+            <div class="feature-title">🔒 锁定功能</div>
+            <div class="feature-desc">锁定后图片无法移动和调整，同时自动冻结当前状态</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-title">❄️ 冻结功能</div>
+            <div class="feature-desc">保存当前图片的位置、尺寸等状态，刷新页面后自动恢复</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
 /* 基础样式 */
 .popup-container {
   width: 320px;
@@ -596,5 +612,36 @@ kbd {
   color: #6c757d;
   flex: 1;
   line-height: 1.3;
+}
+
+/* 功能说明样式 */
+.feature-descriptions {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e1e5e9;
+}
+
+.feature-item {
+  margin-bottom: 12px;
+}
+
+.feature-item:last-child {
+  margin-bottom: 0;
+}
+
+.feature-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.feature-desc {
+  font-size: 11px;
+  color: #6c757d;
+  line-height: 1.4;
+  padding-left: 16px;
 }
 </style>
