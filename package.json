@@ -9,19 +9,24 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc && vite build && node scripts/build-extension.js",
+    "build": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@qxs-bns/utils": "^0.0.27",
+    "@vueuse/core": "^13.8.0",
+    "lodash-es": "^4.17.21",
     "vue": "^3.5.12"
   },
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.2.0",
     "@types/chrome": "^0.0.277",
     "@types/node": "^22.9.0",
     "@vitejs/plugin-vue": "^5.2.0",
     "fs-extra": "^11.2.0",
     "sass": "^1.91.0",
+    "sass-embedded": "^1.90.0",
     "typescript": "^5.6.3",
     "vite": "^6.0.1",
     "vue-tsc": "^2.1.10"

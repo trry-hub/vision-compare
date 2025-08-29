@@ -1,7 +1,7 @@
 /**
  * 应用类型定义
  */
-import { POSITION_MODES, MESSAGE_TYPES } from '../src/constants'
+import { POSITION_MODES, MESSAGE_TYPES } from '../src/utils/constants'
 
 // 基础类型
 export interface Position {
@@ -24,6 +24,7 @@ export interface VisionState {
   freezed: boolean     // 冻结：内容冻结但控制器可修改
   toolbarVisible: boolean
   opacity: number
+  blendMode: string
   position: Position
   positionMode: PositionMode
   size: Size
