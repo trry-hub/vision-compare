@@ -97,7 +97,6 @@ function handleImageLoad() {
   // 图片加载完成后，重新设置控制器位置到屏幕底部中间
   nextTick(() => {
     state.controllerVisible = true
-    console.log('图片加载完成，控制器已显示并定位到底部中间')
   })
 }
 
@@ -253,21 +252,6 @@ const blendModeOptions = BLEND_MODE_OPTIONS
 
 // 处理混合模式变化
 function handleBlendModeChange() {
-  console.log('混合模式已更改为:', state.blendMode)
-
-  // 验证混合模式是否正确应用
-  nextTick(() => {
-    if (imageRef.value) {
-      const computedStyle = window.getComputedStyle(imageRef.value)
-      console.log('图片计算样式中的混合模式:', computedStyle.mixBlendMode)
-      console.log('图片元素位置:', {
-        position: computedStyle.position,
-        zIndex: computedStyle.zIndex,
-        isolation: computedStyle.isolation,
-      })
-    }
-  })
-
   // 保存状态
   saveState()
 
@@ -327,13 +311,11 @@ function toggleFreeze() {
     // 取消冻结
     state.imageFrozen = false
     StorageManager.setFrozenState(null)
-    console.log('冻结状态已取消')
   }
   else {
     // 冻结当前状态
     state.imageFrozen = true
     updateFrozenState()
-    console.log('状态已冻结并保存')
   }
 
   // 保存当前状态
@@ -420,18 +402,13 @@ function exitComparison() {
   state.controllerVisible = false
   state.imageFrozen = false
   state.imageLocked = false
-
-  console.log('所有插件缓存已清理，状态已重置')
 }
 
 // Chrome扩展消息处理
 function handleMessage(request: any, _sender: any, sendResponse: (response: any) => void) {
   try {
-    console.log('收到消息:', request.action)
-
     switch (request.action) {
       case 'ping':
-        console.log('响应 ping 请求')
         sendResponse({ success: true })
         break
       case 'checkStatus': {
@@ -439,14 +416,11 @@ function handleMessage(request: any, _sender: any, sendResponse: (response: any)
           isActive: state.isActive,
           toolbarVisible: state.controllerVisible,
         }
-        console.log('返回状态:', status)
         sendResponse(status)
         break
       }
       case 'uploadImage':
         try {
-          console.log('开始处理图片上传...')
-
           if (!request.imageData) {
             throw new Error('图片数据为空')
           }
@@ -462,8 +436,6 @@ function handleMessage(request: any, _sender: any, sendResponse: (response: any)
           state.controllerVisible = true // 确保控制器显示
           state.controllerExpanded = false // 默认收起状态
 
-          console.log('图片数据已设置，等待加载...')
-
           nextTick(() => {
             checkImageLoad()
           })
@@ -477,17 +449,14 @@ function handleMessage(request: any, _sender: any, sendResponse: (response: any)
         break
       case 'toggleControllerVisibility':
         state.controllerVisible = !state.controllerVisible
-        console.log('切换控制器可见性:', state.controllerVisible)
         sendResponse({ success: true })
         break
       case 'exit':
-        console.log('退出对比模式')
         exitComparison()
         sendResponse({ success: true })
         break
       case 'command':
         // 处理快捷键命令
-        console.log('处理快捷键命令:', request.command)
         switch (request.command) {
           case 'vc_toggle_panel':
             state.controllerVisible = !state.controllerVisible
@@ -505,7 +474,6 @@ function handleMessage(request: any, _sender: any, sendResponse: (response: any)
         sendResponse({ success: true })
         break
       default:
-        console.warn('未知的消息类型:', request.action)
         sendResponse({ success: false, error: '未知的消息类型' })
     }
   }
@@ -523,8 +491,6 @@ function restoreFrozenState() {
   try {
     const frozenState = StorageManager.getFrozenState()
     if (frozenState && frozenState.url === window.location.href && frozenState.imageData) {
-      console.log('恢复冻结状态...')
-
       // 恢复图片数据和状态
       state.imageData = frozenState.imageData
       state.isActive = true
@@ -539,8 +505,6 @@ function restoreFrozenState() {
       state.positionInputs = { ...frozenState.positionInputs }
       state.controllerVisible = true
       state.imageLoaded = true
-
-      console.log('冻结状态已恢复')
     }
   }
   catch (error) {
@@ -551,21 +515,16 @@ function restoreFrozenState() {
 // 生命周期
 onMounted(() => {
   try {
-    console.log('Vision Compare content script 初始化中...')
-
     // 恢复冻结状态
     restoreFrozenState()
 
     // 添加消息监听器
     if (chrome?.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener(handleMessage)
-      console.log('消息监听器已添加')
     }
     else {
       console.error('Chrome runtime API 不可用')
     }
-
-    console.log('Vision Compare content script 初始化完成')
   }
   catch (error) {
     console.error('初始化 content script 时出错:', error)
@@ -576,7 +535,6 @@ onUnmounted(() => {
   try {
     if (chrome?.runtime?.onMessage) {
       chrome.runtime.onMessage.removeListener(handleMessage)
-      console.log('消息监听器已移除')
     }
   }
   catch (error) {

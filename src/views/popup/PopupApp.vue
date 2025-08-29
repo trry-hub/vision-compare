@@ -64,8 +64,6 @@ async function uploadImage(file: File): Promise<void> {
       throw new Error('不支持的图片格式，请选择 JPG、PNG、GIF、WebP 或 SVG 格式')
     }
 
-    console.log('开始读取文件:', file.name, '大小:', `${(file.size / 1024).toFixed(2)}KB`)
-
     const reader = new FileReader()
 
     const imageData = await new Promise<string>((resolve, reject) => {
@@ -75,7 +73,6 @@ async function uploadImage(file: File): Promise<void> {
           reject(new Error('文件读取结果为空'))
           return
         }
-        console.log('文件读取成功，数据长度:', result.length)
         resolve(result)
       }
       reader.onerror = () => reject(new Error('文件读取失败'))
@@ -88,8 +85,6 @@ async function uploadImage(file: File): Promise<void> {
       throw new Error('未找到活动标签页')
     }
 
-    console.log('当前标签页:', tab.url)
-
     // 检查页面是否支持
     if (tab.url?.startsWith('chrome://') || tab.url?.startsWith('chrome-extension://') || tab.url?.startsWith('edge://') || tab.url?.startsWith('about:')) {
       throw new Error('当前页面不支持扩展功能，请在普通网页中使用')
@@ -100,8 +95,6 @@ async function uploadImage(file: File): Promise<void> {
       throw new Error('本地文件页面不支持扩展功能，请在网页中使用')
     }
 
-    console.log('开始检查 content script 状态...')
-
     // 等待 content script 加载（它会通过 manifest.json 自动注入）
     let contentScriptReady = false
     let retries = 0
@@ -109,11 +102,9 @@ async function uploadImage(file: File): Promise<void> {
 
     while (retries < maxRetries && !contentScriptReady) {
       try {
-        console.log(`尝试连接 content script (${retries + 1}/${maxRetries})...`)
         const pingResponse = await chrome.tabs.sendMessage(tab.id, { action: 'ping' })
         if (pingResponse?.success) {
           contentScriptReady = true
-          console.log('Content script 连接成功')
           break
         }
       }
@@ -129,8 +120,6 @@ async function uploadImage(file: File): Promise<void> {
       throw new Error('内容脚本加载失败，请刷新页面后重试。如果问题持续存在，请检查页面是否阻止了扩展脚本运行。')
     }
 
-    console.log('开始发送图片数据...')
-
     // 发送图片数据，增加超时处理
     const response = await Promise.race([
       chrome.tabs.sendMessage(tab.id, {
@@ -144,7 +133,6 @@ async function uploadImage(file: File): Promise<void> {
 
     if (response?.success) {
       isActive.value = true
-      console.log('图片上传成功！')
       window.close()
     }
     else {
@@ -188,8 +176,6 @@ async function handleExit(): Promise<void> {
       await chrome.tabs.sendMessage(tab.id, { action: 'exit' })
       isActive.value = false
     }
-
-    console.log('Popup: 所有缓存已清理，退出完成')
   }
   catch (error) {
     console.error('退出失败:', error)
