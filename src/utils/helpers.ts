@@ -2,17 +2,17 @@
  * 工具函数集合
  */
 
-import { SUPPORTED_IMAGE_TYPES, MAX_FILE_SIZE } from './constants'
+import { MAX_FILE_SIZE, SUPPORTED_IMAGE_TYPES } from './constants'
 
 /**
  * 验证文件是否为支持的图片格式
  */
-export function validateImageFile(file: File): { valid: boolean; error?: string } {
+export function validateImageFile(file: File): { valid: boolean, error?: string } {
   // 检查文件大小
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: '图片文件过大，请选择小于10MB的图片'
+      error: '图片文件过大，请选择小于10MB的图片',
     }
   }
 
@@ -20,7 +20,7 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
   if (!SUPPORTED_IMAGE_TYPES.includes(file.type as any)) {
     return {
       valid: false,
-      error: '不支持的图片格式，请选择 JPG、PNG、GIF、WebP 或 SVG 格式'
+      error: '不支持的图片格式，请选择 JPG、PNG、GIF、WebP 或 SVG 格式',
     }
   }
 
@@ -33,7 +33,7 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
 export function readFileAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       const result = e.target?.result as string
       if (!result) {
@@ -42,7 +42,7 @@ export function readFileAsDataURL(file: File): Promise<string> {
       }
       resolve(result)
     }
-    
+
     reader.onerror = () => reject(new Error('文件读取失败'))
     reader.readAsDataURL(file)
   })
@@ -52,16 +52,18 @@ export function readFileAsDataURL(file: File): Promise<string> {
  * 检查页面是否支持扩展功能
  */
 export function isPageSupported(url?: string): boolean {
-  if (!url) return false
-  
+  if (!url) {
+    return false
+  }
+
   const unsupportedProtocols = [
     'chrome://',
     'chrome-extension://',
     'edge://',
     'about:',
-    'file://'
+    'file://',
   ]
-  
+
   return !unsupportedProtocols.some(protocol => url.startsWith(protocol))
 }
 
@@ -92,17 +94,18 @@ export function calculateAspectRatio(width: number, height: number): number {
 export function adjustSizeByAspectRatio(
   type: 'width' | 'height',
   value: number,
-  aspectRatio: number
-): { width: number; height: number } {
+  aspectRatio: number,
+): { width: number, height: number } {
   if (type === 'width') {
     return {
       width: value,
-      height: Math.round(value / aspectRatio)
+      height: Math.round(value / aspectRatio),
     }
-  } else {
+  }
+  else {
     return {
       width: Math.round(value * aspectRatio),
-      height: value
+      height: value,
     }
   }
 }
@@ -111,13 +114,15 @@ export function adjustSizeByAspectRatio(
  * 格式化文件大小
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  
+  if (bytes === 0) {
+    return '0 B'
+  }
+
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+
+  return `${Number.parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`
 }
 
 /**
@@ -125,12 +130,14 @@ export function formatFileSize(bytes: number): string {
  */
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null
-  
+
   return (...args: Parameters<T>) => {
-    if (timeout) clearTimeout(timeout)
+    if (timeout) {
+      clearTimeout(timeout)
+    }
     timeout = setTimeout(() => func(...args), wait)
   }
 }
@@ -140,10 +147,10 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
-  limit: number
+  limit: number,
 ): (...args: Parameters<T>) => void {
   let inThrottle: boolean = false
-  
+
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
       func(...args)

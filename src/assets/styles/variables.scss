@@ -12,28 +12,27 @@ $vc-danger-color: #ff3b30;
 $vc-success-color: #34c759;
 
 // 背景色
-$vc-bg-dark: rgba(0, 0, 0, 0.85);
-$vc-bg-light: rgba(255, 255, 255, 0.1);
-$vc-bg-disabled: rgba(255, 255, 255, 0.05);
+$vc-bg-dark: rgb(0 0 0 / 85%);
+$vc-bg-light: rgb(255 255 255 / 10%);
+$vc-bg-disabled: rgb(255 255 255 / 5%);
 
 // 边框色
-$vc-border-light: rgba(255, 255, 255, 0.2);
-$vc-border-primary: rgba(79, 124, 255, 0.3);
+$vc-border-light: rgb(255 255 255 / 20%);
+$vc-border-primary: rgb(79 124 255 / 30%);
 
 // 文字颜色
 $vc-text-primary: white;
-$vc-text-secondary: rgba(255, 255, 255, 0.8);
-$vc-text-muted: rgba(255, 255, 255, 0.7);
-$vc-text-disabled: rgba(255, 255, 255, 0.3);
+$vc-text-secondary: rgb(255 255 255 / 80%);
+$vc-text-muted: rgb(255 255 255 / 70%);
+$vc-text-disabled: rgb(255 255 255 / 30%);
 
 // 输入框样式
-$vc-input-bg: rgba(255, 255, 255, 0.1);
-$vc-input-border: rgba(255, 255, 255, 0.3);
+$vc-input-bg: rgb(255 255 255 / 10%);
+$vc-input-border: rgb(255 255 255 / 30%);
 
 // 字体大小
-$vc-font-size-small: 10px;
-$vc-font-size-normal: 12px;
-$vc-font-size-medium: 14px;
+$vc-font-size-normal: 10px;
+$vc-font-size-medium: 10px;
 
 // 间距
 $vc-spacing-xs: 2px;
@@ -48,8 +47,8 @@ $vc-border-radius-md: 4px;
 $vc-border-radius-lg: 10px;
 
 // 阴影
-$vc-shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);
-$vc-shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.3);
+$vc-shadow-light: 0 2px 8px rgb(0 0 0 / 10%);
+$vc-shadow-medium: 0 4px 20px rgb(0 0 0 / 30%);
 
 // 过渡动画
 $vc-transition-fast: 0.2s ease;

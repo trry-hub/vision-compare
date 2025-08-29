@@ -1,6 +1,13 @@
-
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+
+// Chrome API 类型声明
+declare const chrome: {
+  tabs: {
+    query: (queryInfo: { active?: boolean, currentWindow?: boolean }) => Promise<Array<{ id?: number, url?: string }>>
+    sendMessage: (tabId: number, message: any) => Promise<any>
+  }
+}
 
 // 响应式状态
 const isActive = ref(false)
@@ -10,12 +17,12 @@ const isUploading = ref(false)
 const fileInputRef = ref<HTMLInputElement>()
 
 // 处理文件上传点击
-const handleUploadClick = (): void => {
+function handleUploadClick(): void {
   fileInputRef.value?.click()
 }
 
 // 处理文件选择
-const handleFileChange = (event: Event): void => {
+function handleFileChange(event: Event): void {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (file && file.type.startsWith('image/')) {
@@ -24,15 +31,15 @@ const handleFileChange = (event: Event): void => {
 }
 
 // 处理拖拽
-const handleDragOver = (): void => {
+function handleDragOver(): void {
   isDragOver.value = true
 }
 
-const handleDragLeave = (): void => {
+function handleDragLeave(): void {
   isDragOver.value = false
 }
 
-const handleDrop = (event: DragEvent): void => {
+function handleDrop(event: DragEvent): void {
   isDragOver.value = false
   const file = event.dataTransfer?.files[0]
   if (file && file.type.startsWith('image/')) {
@@ -41,7 +48,7 @@ const handleDrop = (event: DragEvent): void => {
 }
 
 // 上传图片
-const uploadImage = async (file: File): Promise<void> => {
+async function uploadImage(file: File): Promise<void> {
   isUploading.value = true
 
   try {
@@ -57,7 +64,7 @@ const uploadImage = async (file: File): Promise<void> => {
       throw new Error('不支持的图片格式，请选择 JPG、PNG、GIF、WebP 或 SVG 格式')
     }
 
-    console.log('开始读取文件:', file.name, '大小:', (file.size / 1024).toFixed(2) + 'KB')
+    console.log('开始读取文件:', file.name, '大小:', `${(file.size / 1024).toFixed(2)}KB`)
 
     const reader = new FileReader()
 
@@ -109,7 +116,8 @@ const uploadImage = async (file: File): Promise<void> => {
           console.log('Content script 连接成功')
           break
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.log('Content script 未就绪，等待中...', e)
         // Content script 还未加载，等待一下
         retries++
@@ -127,44 +135,48 @@ const uploadImage = async (file: File): Promise<void> => {
     const response = await Promise.race([
       chrome.tabs.sendMessage(tab.id, {
         action: 'uploadImage',
-        imageData
+        imageData,
       }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('上传超时，请重试')), 10000)
-      )
+        setTimeout(() => reject(new Error('上传超时，请重试')), 10000),
+      ),
     ]) as any
 
     if (response?.success) {
       isActive.value = true
       console.log('图片上传成功！')
       window.close()
-    } else {
+    }
+    else {
       throw new Error(response?.error || '图片上传失败，请重试')
     }
-
-  } catch (error) {
+  }
+  catch (error) {
     const errorMessage = (error as Error).message
     console.error('上传失败：', errorMessage, error)
+    // eslint-disable-next-line no-alert
     alert(`上传失败：${errorMessage}`)
-  } finally {
+  }
+  finally {
     isUploading.value = false
   }
 }
 
 // 其他控制函数
-const handleToggleController = async (): Promise<void> => {
+async function handleToggleController(): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (tab?.id) {
       await chrome.tabs.sendMessage(tab.id, { action: 'toggleControllerVisibility' })
       toolbarVisible.value = !toolbarVisible.value
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('切换控制器失败:', error)
   }
 }
 
-const handleExit = async (): Promise<void> => {
+async function handleExit(): Promise<void> {
   try {
     // 清理popup存储
     sessionStorage.removeItem('vision-compare-state')
@@ -178,13 +190,14 @@ const handleExit = async (): Promise<void> => {
     }
 
     console.log('Popup: 所有缓存已清理，退出完成')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('退出失败:', error)
   }
 }
 
 // 检查状态
-const checkStatus = async (): Promise<void> => {
+async function checkStatus(): Promise<void> {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
     if (tab?.id) {
@@ -194,7 +207,9 @@ const checkStatus = async (): Promise<void> => {
         toolbarVisible.value = response.toolbarVisible || false
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
+    console.log(`🚀 ~ checkStatus ~ error:`, error)
     // Content script not loaded, that's fine
   }
 }
@@ -203,20 +218,27 @@ onMounted(() => {
   checkStatus()
 })
 </script>
+
 <template>
   <div class="popup-container">
     <!-- 头部 -->
     <div class="popup-header">
-      <div class="header-icon">🎯</div>
+      <div class="header-icon">
+        🎯
+      </div>
       <div class="header-content">
-        <h1 class="header-title">Vision Compare</h1>
-        <p class="header-subtitle">你的眼睛不是尺</p>
+        <h1 class="header-title">
+          Vision Compare
+        </h1>
+        <p class="header-subtitle">
+          你的眼睛不是尺
+        </p>
       </div>
     </div>
 
     <!-- 上传状态 -->
     <div v-if="!isActive" class="upload-section">
-      <div 
+      <div
         class="upload-area"
         :class="{ dragover: isDragOver, uploading: isUploading }"
         @click="handleUploadClick"
@@ -226,22 +248,30 @@ onMounted(() => {
       >
         <div class="upload-content">
           <div class="upload-icon">
-            <div v-if="isUploading" class="loading-spinner">⏳</div>
-            <div v-else>📁</div>
+            <div v-if="isUploading" class="loading-spinner">
+              ⏳
+            </div>
+            <div v-else>
+              📁
+            </div>
           </div>
           <div class="upload-text">
-            <div class="upload-title">{{ isUploading ? '上传中...' : '拖拽或点击上传' }}</div>
-            <div class="upload-subtitle">支持 PNG、JPG、GIF、SVG 格式</div>
+            <div class="upload-title">
+              {{ isUploading ? '上传中...' : '拖拽或点击上传' }}
+            </div>
+            <div class="upload-subtitle">
+              支持 PNG、JPG、GIF、SVG 格式
+            </div>
           </div>
         </div>
       </div>
 
-      <input 
-        ref="fileInputRef" 
-        type="file" 
+      <input
+        ref="fileInputRef"
+        type="file"
         accept="image/*"
-        @change="handleFileChange" 
         style="display: none;"
+        @change="handleFileChange"
       >
 
       <div class="upload-tips">
@@ -264,33 +294,39 @@ onMounted(() => {
     <div v-else class="active-section">
       <div class="status-card">
         <div class="status-indicator">
-          <div class="status-dot"></div>
+          <div class="status-dot" />
           <div class="status-text">
-            <div class="status-title">Vision Compare 已激活</div>
-            <div class="status-subtitle">正在当前页面进行视觉对比</div>
+            <div class="status-title">
+              Vision Compare 已激活
+            </div>
+            <div class="status-subtitle">
+              正在当前页面进行视觉对比
+            </div>
           </div>
         </div>
       </div>
 
       <div class="control-grid">
-        <button @click="handleToggleController" class="control-btn primary">
+        <button class="control-btn primary" @click="handleToggleController">
           <span class="btn-icon">👁️</span>
           <span>{{ toolbarVisible ? '隐藏' : '显示' }}</span>
         </button>
 
-        <button @click="handleUploadClick" class="control-btn secondary">
+        <button class="control-btn secondary" @click="handleUploadClick">
           <span class="btn-icon">🔄</span>
           <span>更换</span>
         </button>
 
-        <button @click="handleExit" class="control-btn danger">
+        <button class="control-btn danger" @click="handleExit">
           <span class="btn-icon">❌</span>
           <span>退出</span>
         </button>
       </div>
 
       <div class="shortcuts-info">
-        <div class="shortcuts-title">快捷键</div>
+        <div class="shortcuts-title">
+          快捷键
+        </div>
         <div class="shortcuts-grid">
           <div class="shortcut-item">
             <kbd>F</kbd>
@@ -317,12 +353,20 @@ onMounted(() => {
         <!-- 功能说明 -->
         <div class="feature-descriptions">
           <div class="feature-item">
-            <div class="feature-title">🔒 锁定功能</div>
-            <div class="feature-desc">锁定后图片无法移动和调整，同时自动冻结当前状态</div>
+            <div class="feature-title">
+              🔒 锁定功能
+            </div>
+            <div class="feature-desc">
+              锁定后图片无法移动和调整，同时自动冻结当前状态
+            </div>
           </div>
           <div class="feature-item">
-            <div class="feature-title">❄️ 冻结功能</div>
-            <div class="feature-desc">保存当前图片的位置、尺寸等状态，刷新页面后自动恢复</div>
+            <div class="feature-title">
+              ❄️ 冻结功能
+            </div>
+            <div class="feature-desc">
+              保存当前图片的位置、尺寸等状态，刷新页面后自动恢复
+            </div>
           </div>
         </div>
       </div>
@@ -335,23 +379,23 @@ onMounted(() => {
 .popup-container {
   width: 320px;
   max-height: 600px;
-  background: #ffffff;
-  border-radius: 8px;
   overflow: hidden;
   overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
 }
 
 .popup-header {
   display: flex;
   align-items: center;
   padding: 16px 20px 12px;
-  background: linear-gradient(135deg, #4f7cff 0%, #5a7ef0 100%);
   color: white;
+  background: linear-gradient(135deg, #4f7cff 0%, #5a7ef0 100%);
 }
 
 .header-icon {
-  font-size: 24px;
   margin-right: 12px;
+  font-size: 24px;
 }
 
 .header-content {
@@ -359,15 +403,15 @@ onMounted(() => {
 }
 
 .header-title {
+  margin: 0 0 2px;
   font-size: 16px;
   font-weight: 600;
-  margin: 0 0 2px;
 }
 
 .header-subtitle {
+  margin: 0;
   font-size: 12px;
   opacity: 0.9;
-  margin: 0;
 }
 
 /* 上传区域样式 */
@@ -376,24 +420,24 @@ onMounted(() => {
 }
 
 .upload-area {
-  border: 2px dashed #e1e5e9;
-  border-radius: 8px;
   padding: 24px 16px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
   background: #f8f9fa;
+  border: 2px dashed #e1e5e9;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
 .upload-area:hover {
-  border-color: #4f7cff;
   background: #f0f4ff;
+  border-color: #4f7cff;
   transform: translateY(-2px);
 }
 
 .upload-area.dragover {
-  border-color: #4f7cff;
   background: #f0f4ff;
+  border-color: #4f7cff;
   transform: scale(1.02);
 }
 
@@ -405,8 +449,8 @@ onMounted(() => {
 .upload-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
+  align-items: center;
 }
 
 .upload-icon {
@@ -424,10 +468,10 @@ onMounted(() => {
 }
 
 .upload-text .upload-title {
+  margin-bottom: 4px;
   font-size: 16px;
   font-weight: 600;
   color: #1d1d1f;
-  margin-bottom: 4px;
 }
 
 .upload-text .upload-subtitle {
@@ -436,8 +480,8 @@ onMounted(() => {
 }
 
 .upload-tips {
-  margin-top: 16px;
   padding: 12px;
+  margin-top: 16px;
   background: #f8f9fa;
   border-radius: 6px;
 }
@@ -453,9 +497,9 @@ onMounted(() => {
 }
 
 .tip-icon {
-  font-size: 14px;
-  margin-right: 8px;
   width: 16px;
+  margin-right: 8px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -470,11 +514,11 @@ onMounted(() => {
 }
 
 .status-card {
-  background: #f0fff4;
-  border: 1px solid rgba(52, 199, 89, 0.2);
-  border-radius: 6px;
   padding: 16px;
   margin-bottom: 20px;
+  background: #f0fff4;
+  border: 1px solid rgb(52 199 89 / 20%);
+  border-radius: 6px;
 }
 
 .status-indicator {
@@ -485,22 +529,30 @@ onMounted(() => {
 .status-dot {
   width: 8px;
   height: 8px;
+  margin-right: 12px;
   background: #34c759;
   border-radius: 50%;
-  margin-right: 12px;
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
 }
 
 .status-text .status-title {
+  margin-bottom: 2px;
   font-size: 14px;
   font-weight: 600;
   color: #1d1d1f;
-  margin-bottom: 2px;
 }
 
 .status-text .status-subtitle {
@@ -520,24 +572,24 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 6px;
-  border: none;
-  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  border: none;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
 .btn-icon {
-  font-size: 16px;
-  margin-right: 12px;
   width: 20px;
+  margin-right: 12px;
+  font-size: 16px;
   text-align: center;
 }
 
 .control-btn.primary {
-  background: #4f7cff;
   color: white;
+  background: #4f7cff;
 }
 
 .control-btn.primary:hover {
@@ -546,40 +598,40 @@ onMounted(() => {
 }
 
 .control-btn.secondary {
-  background: #f8f9fa;
   color: #6c757d;
-  border: 1px solid rgba(108, 117, 125, 0.2);
+  background: #f8f9fa;
+  border: 1px solid rgb(108 117 125 / 20%);
 }
 
 .control-btn.secondary:hover {
-  background: #6c757d;
   color: white;
+  background: #6c757d;
   transform: translateY(-1px);
 }
 
 .control-btn.danger {
-  background: #fff5f5;
   color: #ff3b30;
-  border: 1px solid rgba(255, 59, 48, 0.2);
+  background: #fff5f5;
+  border: 1px solid rgb(255 59 48 / 20%);
 }
 
 .control-btn.danger:hover {
-  background: #ff3b30;
   color: white;
+  background: #ff3b30;
   transform: translateY(-1px);
 }
 
 .shortcuts-info {
+  padding: 16px;
   background: #f8f9fa;
   border-radius: 6px;
-  padding: 16px;
 }
 
 .shortcuts-title {
+  margin-bottom: 12px;
   font-size: 13px;
   font-weight: 600;
   color: #1d1d1f;
-  margin-bottom: 12px;
 }
 
 .shortcuts-grid {
@@ -595,29 +647,29 @@ onMounted(() => {
 }
 
 kbd {
-  background: white;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
+  min-width: 20px;
   padding: 2px 4px;
+  margin-right: 6px;
   font-size: 10px;
   font-weight: 600;
   color: #1d1d1f;
-  margin-right: 6px;
-  min-width: 20px;
   text-align: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
 }
 
 .shortcut-item span {
-  color: #6c757d;
   flex: 1;
   line-height: 1.3;
+  color: #6c757d;
 }
 
 /* 功能说明样式 */
 .feature-descriptions {
-  margin-top: 16px;
   padding-top: 12px;
+  margin-top: 16px;
   border-top: 1px solid #e1e5e9;
 }
 
@@ -630,18 +682,18 @@ kbd {
 }
 
 .feature-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
   font-size: 12px;
   font-weight: 600;
   color: #1d1d1f;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
 }
 
 .feature-desc {
-  font-size: 11px;
-  color: #6c757d;
-  line-height: 1.4;
   padding-left: 16px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6c757d;
 }
 </style>

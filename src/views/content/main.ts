@@ -7,10 +7,12 @@ try {
   // 确保 DOM 已加载
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initVisionCompare)
-  } else {
+  }
+  else {
     initVisionCompare()
   }
-} catch (error) {
+}
+catch (error) {
   console.error('Vision Compare content script 加载失败:', error)
 }
 
@@ -49,8 +51,8 @@ function initVisionCompare() {
 
     app.mount(div)
     console.log('Vision Compare Vue 应用已挂载')
-
-  } catch (error) {
+  }
+  catch (error) {
     console.error('初始化 Vision Compare 时出错:', error)
   }
 }

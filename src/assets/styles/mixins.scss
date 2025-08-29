@@ -2,7 +2,7 @@
  * SCSS 混入定义
  */
 
-@import './variables.scss';
+@import "./variables";
 
 // 布局混入
 @mixin flex-center {
@@ -12,8 +12,8 @@
 
 @mixin flex-center-column {
   display: flex;
-  align-items: center;
   flex-direction: column;
+  align-items: center;
 }
 
 @mixin flex-between {
@@ -24,17 +24,17 @@
 
 // 按钮基础样式
 @mixin button-base {
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
   border: none;
   border-radius: $vc-border-radius-md;
-  cursor: pointer;
   transition: $vc-transition-fast;
-  user-select: none;
-  white-space: nowrap;
-  
+
   &:hover:not(:disabled) {
     transform: translateY(-1px);
   }
-  
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
@@ -43,71 +43,72 @@
 
 // 输入框基础样式
 @mixin input-base {
+  font-size: $vc-font-size-normal;
+  color: $vc-text-primary;
+  background: $vc-input-bg;
   border: 1px solid $vc-input-border;
   border-radius: $vc-border-radius-sm;
-  background: $vc-input-bg;
-  color: $vc-text-primary;
-  font-size: $vc-font-size-normal;
-  
+
   &:focus {
     outline: none;
     border-color: $vc-primary-color;
     box-shadow: 0 0 0 1px $vc-border-primary;
   }
-  
+
   &:disabled,
   &.disabled {
-    background: $vc-bg-disabled;
     color: $vc-text-disabled;
     cursor: not-allowed;
+    background: $vc-bg-disabled;
   }
 }
 
 // 滑块基础样式
 @mixin slider-base {
   appearance: none;
+  outline: none;
   background: $vc-text-secondary;
   border-radius: $vc-border-radius-sm;
-  outline: none;
-  
+
   &::-webkit-slider-thumb {
-    appearance: none;
     width: 12px;
     height: 12px;
-    background: $vc-primary-color;
-    border-radius: 50%;
+    appearance: none;
     cursor: pointer;
+    background: $vc-primary-color;
     border: 1px solid $vc-text-primary;
+    border-radius: 50%;
   }
-  
+
   &::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    background: $vc-primary-color;
-    border-radius: 50%;
     cursor: pointer;
+    background: $vc-primary-color;
     border: 1px solid $vc-text-primary;
+    border-radius: 50%;
   }
 }
 
 // 选择框基础样式
 @mixin select-base {
   @include input-base;
+
   cursor: pointer;
-  
+
   option {
-    background: rgba(0, 0, 0, 0.9);
     color: $vc-text-primary;
+    background: rgb(0 0 0 / 90%);
   }
 }
 
 // 卡片样式
 @mixin card-base {
   background: $vc-bg-dark;
-  backdrop-filter: blur(20px);
   border: 1px solid $vc-border-light;
   border-radius: $vc-border-radius-lg;
   box-shadow: $vc-shadow-medium;
+  backdrop-filter: blur(20px);
 }
 
 // 文本截断
@@ -121,7 +122,7 @@
 @mixin hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-  
+
   &::-webkit-scrollbar {
     display: none;
   }
@@ -129,19 +130,19 @@
 
 // 响应式断点
 @mixin mobile {
-  @media (max-width: 768px) {
+  @media (width <= 768px) {
     @content;
   }
 }
 
 @mixin tablet {
-  @media (min-width: 769px) and (max-width: 1024px) {
+  @media (width >= 769px) and (width <= 1024px) {
     @content;
   }
 }
 
 @mixin desktop {
-  @media (min-width: 1025px) {
+  @media (width >= 1025px) {
     @content;
   }
 }

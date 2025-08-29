@@ -19,7 +19,7 @@ export const BLEND_MODE_OPTIONS = [
   { value: 'hue', label: '色相' },
   { value: 'saturation', label: '饱和度' },
   { value: 'color', label: '颜色' },
-  { value: 'luminosity', label: '明度' }
+  { value: 'luminosity', label: '明度' },
 ] as const
 
 // 位置模式选项
@@ -29,17 +29,17 @@ export const POSITION_MODE_OPTIONS = [
   { value: 'top-right', label: '右上' },
   { value: 'bottom-left', label: '左下' },
   { value: 'bottom-right', label: '右下' },
-  { value: 'center', label: '居中' }
+  { value: 'center', label: '居中' },
 ] as const
 
 // 支持的图片格式
 export const SUPPORTED_IMAGE_TYPES = [
   'image/jpeg',
-  'image/jpg', 
+  'image/jpg',
   'image/png',
   'image/gif',
   'image/webp',
-  'image/svg+xml'
+  'image/svg+xml',
 ] as const
 
 // 文件大小限制（10MB）
@@ -48,5 +48,5 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024
 // Z-index 层级
 export const Z_INDEX = {
   OVERLAY: 999999,
-  CONTROLLER: 1000000
+  CONTROLLER: 1000000,
 } as const

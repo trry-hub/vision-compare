@@ -4,12 +4,29 @@
 
 import { isPageSupported, sleep } from './helpers'
 
-/**
- * Chrome 消息类型
- */
+// 定义 Tab 类型
+export interface ChromeTab {
+  id?: number
+  url?: string
+}
+
+// Chrome 消息类型
 export interface ChromeMessage {
   action: string
   [key: string]: any
+}
+
+// Chrome API 类型声明
+declare const chrome: {
+  tabs: {
+    query: (queryInfo: { active?: boolean, currentWindow?: boolean }, callback: (tabs: ChromeTab[]) => void) => void
+    sendMessage: (tabId: number, message: any, callback?: (response: any) => void) => void
+  }
+  runtime: {
+    lastError?: {
+      message: string
+    }
+  }
 }
 
 /**
@@ -19,14 +36,18 @@ export class ChromeExtensionUtils {
   /**
    * 获取当前活动标签页
    */
-  static async getCurrentTab(): Promise<chrome.tabs.Tab | null> {
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-      return tab || null
-    } catch (error) {
-      console.error('获取当前标签页失败:', error)
-      return null
-    }
+  static async getCurrentTab(): Promise<ChromeTab | null> {
+    return new Promise((resolve) => {
+      try {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          resolve(tabs[0] || null)
+        })
+      }
+      catch (error) {
+        console.error('获取当前标签页失败:', error)
+        resolve(null)
+      }
+    })
   }
 
   /**
@@ -35,13 +56,22 @@ export class ChromeExtensionUtils {
   static async sendMessageToContentScript(
     tabId: number,
     message: ChromeMessage,
-    timeout: number = 10000
+    timeout: number = 10000,
   ): Promise<any> {
     return Promise.race([
-      chrome.tabs.sendMessage(tabId, message),
+      new Promise((resolve, reject) => {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message))
+          }
+          else {
+            resolve(response)
+          }
+        })
+      }),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('消息发送超时')), timeout)
-      )
+        setTimeout(() => reject(new Error('消息发送超时')), timeout),
+      ),
     ])
   }
 
@@ -51,25 +81,23 @@ export class ChromeExtensionUtils {
   static async waitForContentScript(
     tabId: number,
     maxRetries: number = 15,
-    retryInterval: number = 500
+    retryInterval: number = 500,
   ): Promise<boolean> {
     let retries = 0
 
     while (retries < maxRetries) {
       try {
-        console.log(`尝试连接 content script (${retries + 1}/${maxRetries})...`)
-        const response = await this.sendMessageToContentScript(tabId, { action: 'ping' })
-        
-        if (response?.success) {
-          console.log('Content script 连接成功')
+        const response = await this.sendMessageToContentScript(tabId, { action: 'ping' }, 2000)
+        if (response?.status === 'ready') {
           return true
         }
-      } catch (error) {
-        console.log('Content script 未就绪，等待中...', error)
+      }
+      catch {
+        console.log(`Content script 未就绪，重试 ${retries + 1}/${maxRetries}`)
       }
 
-      retries++
       await sleep(retryInterval)
+      retries++
     }
 
     return false
@@ -78,84 +106,58 @@ export class ChromeExtensionUtils {
   /**
    * 验证标签页是否支持扩展功能
    */
-  static validateTab(tab: chrome.tabs.Tab | null): { valid: boolean; error?: string } {
+  static validateTab(tab: ChromeTab | null): { valid: boolean, error?: string } {
     if (!tab?.id) {
       return { valid: false, error: '未找到活动标签页' }
     }
 
+    if (!tab.url) {
+      return { valid: false, error: '无法获取页面URL' }
+    }
+
     if (!isPageSupported(tab.url)) {
-      return {
-        valid: false,
-        error: '当前页面不支持扩展功能，请在普通网页中使用'
-      }
+      return { valid: false, error: '当前页面不支持扩展功能' }
     }
 
     return { valid: true }
   }
 
   /**
-   * 上传图片到 content script
+   * 安全地向标签页发送消息
    */
-  static async uploadImageToContentScript(imageData: string): Promise<void> {
-    const tab = await this.getCurrentTab()
-    const validation = this.validateTab(tab)
-    
-    if (!validation.valid) {
-      throw new Error(validation.error)
-    }
+  static async safelyExecuteOnTab(
+    tabId: number,
+    action: string,
+    data?: any,
+    options: {
+      timeout?: number
+      waitForReady?: boolean
+      maxRetries?: number
+    } = {},
+  ): Promise<{ success: boolean, data?: any, error?: string }> {
+    const { timeout = 10000, waitForReady = true, maxRetries = 3 } = options
 
-    const tabId = tab!.id!
-    
-    // 等待 content script 就绪
-    const isReady = await this.waitForContentScript(tabId)
-    if (!isReady) {
-      throw new Error('内容脚本加载失败，请刷新页面后重试。如果问题持续存在，请检查页面是否阻止了扩展脚本运行。')
-    }
-
-    // 发送图片数据
-    console.log('开始发送图片数据...')
-    const response = await this.sendMessageToContentScript(tabId, {
-      action: 'uploadImage',
-      imageData
-    })
-
-    if (!response?.success) {
-      throw new Error(response?.error || '图片上传失败，请重试')
-    }
-  }
-
-  /**
-   * 发送退出消息
-   */
-  static async exitComparison(): Promise<void> {
     try {
-      const tab = await this.getCurrentTab()
-      if (tab?.id) {
-        await this.sendMessageToContentScript(tab.id, { action: 'exit' })
+      // 如果需要等待 content script 就绪
+      if (waitForReady) {
+        const isReady = await this.waitForContentScript(tabId, maxRetries)
+        if (!isReady) {
+          return { success: false, error: 'Content script 未就绪' }
+        }
       }
-    } catch (error) {
-      console.error('发送退出消息失败:', error)
+
+      // 发送消息
+      const response = await this.sendMessageToContentScript(
+        tabId,
+        { action, ...data },
+        timeout,
+      )
+
+      return { success: true, data: response }
     }
-  }
-
-  /**
-   * 检查扩展状态
-   */
-  static async checkExtensionStatus(): Promise<{ isActive: boolean; toolbarVisible: boolean }> {
-    try {
-      const tab = await this.getCurrentTab()
-      if (!tab?.id) {
-        return { isActive: false, toolbarVisible: false }
-      }
-
-      const response = await this.sendMessageToContentScript(tab.id, { action: 'checkStatus' })
-      return {
-        isActive: response?.isActive || false,
-        toolbarVisible: response?.toolbarVisible || false
-      }
-    } catch (error) {
-      console.error('检查扩展状态失败:', error)
-      return { isActive: false, toolbarVisible: false }
+    catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      return { success: false, error: errorMessage }
     }
   }
 }

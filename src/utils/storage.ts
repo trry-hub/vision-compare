@@ -5,7 +5,7 @@
 // 存储键名常量
 export const STORAGE_KEYS = {
   STATE: 'vision-compare-state',
-  FROZEN: 'vision-compare-frozen'
+  FROZEN: 'vision-compare-frozen',
 } as const
 
 // 状态接口定义
@@ -18,17 +18,17 @@ export interface VisionCompareState {
   imageLocked: boolean
   imageFrozen: boolean
   opacity: number
-  position: { x: number; y: number }
+  position: { x: number, y: number }
   rotation: number
   aspectRatioLocked: boolean
   positionMode: string
-  positionInputs: { top: number; left: number; right: number; bottom: number }
+  positionInputs: { top: number, left: number, right: number, bottom: number }
   blendMode: string
 }
 
 export interface FrozenState extends VisionCompareState {
-  size: { width: number; height: number }
-  originalSize: { width: number; height: number }
+  size: { width: number, height: number }
+  originalSize: { width: number, height: number }
   timestamp: number
   url: string
 }
@@ -44,7 +44,8 @@ export class StorageManager {
     try {
       const data = sessionStorage.getItem(STORAGE_KEYS.STATE)
       return data ? JSON.parse(data) : {}
-    } catch (error) {
+    }
+    catch (error) {
       console.error('读取状态失败:', error)
       return {}
     }
@@ -56,7 +57,8 @@ export class StorageManager {
   static setState(state: Partial<VisionCompareState>): void {
     try {
       sessionStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(state))
-    } catch (error) {
+    }
+    catch (error) {
       console.error('保存状态失败:', error)
     }
   }
@@ -77,7 +79,8 @@ export class StorageManager {
     try {
       const data = sessionStorage.getItem(STORAGE_KEYS.FROZEN)
       return data ? JSON.parse(data) : null
-    } catch (error) {
+    }
+    catch (error) {
       console.error('读取冻结状态失败:', error)
       return null
     }
@@ -90,10 +93,12 @@ export class StorageManager {
     try {
       if (state === null) {
         sessionStorage.removeItem(STORAGE_KEYS.FROZEN)
-      } else {
+      }
+      else {
         sessionStorage.setItem(STORAGE_KEYS.FROZEN, JSON.stringify(state))
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('保存冻结状态失败:', error)
     }
   }
@@ -106,7 +111,8 @@ export class StorageManager {
       sessionStorage.removeItem(STORAGE_KEYS.STATE)
       sessionStorage.removeItem(STORAGE_KEYS.FROZEN)
       console.log('所有状态已清理')
-    } catch (error) {
+    }
+    catch (error) {
       console.error('清理状态失败:', error)
     }
   }
@@ -129,5 +135,5 @@ export const DEFAULT_STATE: VisionCompareState = {
   aspectRatioLocked: true,
   positionMode: 'top-left',
   positionInputs: { top: 0, left: 0, right: 0, bottom: 0 },
-  blendMode: 'normal'
+  blendMode: 'normal',
 }
