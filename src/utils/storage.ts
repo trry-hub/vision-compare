@@ -110,7 +110,6 @@ export class StorageManager {
     try {
       sessionStorage.removeItem(STORAGE_KEYS.STATE)
       sessionStorage.removeItem(STORAGE_KEYS.FROZEN)
-      console.log('所有状态已清理')
     }
     catch (error) {
       console.error('清理状态失败:', error)

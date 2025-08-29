@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { QxsIcon } from '@qxs-bns/components/es/src/icon/index'
 import { useEventListener } from '@vueuse/core'
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { BLEND_MODE_OPTIONS } from '../../utils/constants'
 import { StorageManager } from '../../utils/storage'
 
@@ -121,6 +121,7 @@ function checkImageLoad() {
 // 透明度调节
 function adjustOpacity(delta: number) {
   state.opacity = Math.max(0, Math.min(100, state.opacity + delta))
+  saveState()
 }
 
 // 图片移动
@@ -130,6 +131,7 @@ function moveImage(dx: number, dy: number) {
   }
   state.position.x += dx
   state.position.y += dy
+  saveState()
 }
 
 // 图片缩放功能已集成到具体的按钮处理函数中
@@ -201,10 +203,6 @@ function updatePositionInput(type: 'top' | 'left' | 'right' | 'bottom', value: n
   }
   // 保存状态
   saveState()
-  // 如果已冻结，更新存储
-  if (state.imageFrozen) {
-    updateFrozenState()
-  }
 }
 
 // 处理尺寸输入
@@ -254,10 +252,6 @@ const blendModeOptions = BLEND_MODE_OPTIONS
 function handleBlendModeChange() {
   // 保存状态
   saveState()
-
-  if (state.imageFrozen) {
-    updateFrozenState()
-  }
 }
 
 // 计算图片样式
@@ -275,9 +269,34 @@ const imageStyle = computed(() => ({
 // 计算是否禁用控制器
 const isControllerDisabled = computed(() => state.imageLocked)
 
+// 监听关键状态变化，确保冻结状态实时同步
+watch(
+  () => [
+    state.opacity,
+    state.position.x,
+    state.position.y,
+    state.size.width,
+    state.size.height,
+    state.rotation,
+    state.blendMode,
+    state.imageVisible,
+    state.aspectRatioLocked,
+    state.positionMode,
+  ],
+  (_, oldValues) => {
+    // 只有在冻结状态下才同步到冻结存储
+    if (state.imageFrozen && oldValues) {
+      updateFrozenState()
+    }
+  },
+  { deep: true },
+)
+
 // 更新冻结状态到存储
 function updateFrozenState() {
   if (!state.imageFrozen) {
+    // 如果不是冻结状态，清除冻结存储
+    StorageManager.setFrozenState(null)
     return
   }
 
@@ -353,10 +372,11 @@ function handleKeyDown(e: KeyboardEvent) {
       state.imageLocked = !state.imageLocked
       break
     case 'z':
-      state.imageFrozen = !state.imageFrozen
+      toggleFreeze()
       break
     case 'v':
       state.imageVisible = !state.imageVisible
+      saveState()
       break
     case 'arrowup':
       if (e.shiftKey) {
@@ -465,7 +485,7 @@ function handleMessage(request: any, _sender: any, sendResponse: (response: any)
             state.imageLocked = !state.imageLocked
             break
           case 'vc_toggle_difference':
-            state.imageFrozen = !state.imageFrozen
+            toggleFreeze()
             break
           case 'vc_exit':
             exitComparison()
@@ -641,7 +661,7 @@ onUnmounted(() => {
               :class="{ 'vc-active': state.aspectRatioLocked }"
               :disabled="isControllerDisabled"
               title="宽高比锁定"
-              @click="state.aspectRatioLocked = !state.aspectRatioLocked"
+              @click="() => { state.aspectRatioLocked = !state.aspectRatioLocked; saveState() }"
             >
               <QxsIcon icon="mdi:link-variant" :class="{ 'vc-icon-active': state.aspectRatioLocked }" />
             </button>
@@ -762,7 +782,7 @@ onUnmounted(() => {
             class="vc-btn vc-btn-sm"
             :class="{ 'vc-active': state.imageVisible }"
             title="显示/隐藏图片"
-            @click="state.imageVisible = !state.imageVisible"
+            @click="() => { state.imageVisible = !state.imageVisible; saveState() }"
           >
             <QxsIcon :icon="state.imageVisible ? 'mdi:eye' : 'mdi:eye-off'" :class="{ 'vc-icon-active': state.imageVisible }" />
           </button>
