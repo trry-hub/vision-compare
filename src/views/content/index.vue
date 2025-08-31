@@ -195,16 +195,6 @@ function updatePositionByMode() {
   }
 }
 
-// 更新位置输入值
-function updatePositionInput(type: 'top' | 'left' | 'right' | 'bottom', value: number) {
-  state.positionInputs[type] = value
-  if (state.positionMode !== 'free') {
-    updatePositionByMode()
-  }
-  // 保存状态
-  saveState()
-}
-
 // 处理尺寸输入
 function handleSizeInput(type: 'width' | 'height', value: number) {
   // 防止无效值
@@ -268,6 +258,22 @@ const imageStyle = computed(() => ({
 
 // 计算是否禁用控制器
 const isControllerDisabled = computed(() => state.imageLocked)
+
+// 监听位置输入变化，实时更新图片位置
+watch(
+  () => state.positionInputs,
+  () => {
+    if (state.positionMode !== 'free') {
+      updatePositionByMode()
+    }
+    saveState()
+    // 如果是冻结状态，立即更新冻结存储
+    if (state.imageFrozen) {
+      updateFrozenState()
+    }
+  },
+  { deep: true },
+)
 
 // 监听关键状态变化，确保冻结状态实时同步
 watch(
@@ -714,7 +720,6 @@ onUnmounted(() => {
                   :disabled="isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right'"
                   class="vc-input"
                   :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'bottom-left' || state.positionMode === 'bottom-right' }"
-                  @keydown.stop="updatePositionInput('top', state.positionInputs.top)"
                 >
               </div>
               <div class="vc-input-group">
@@ -725,7 +730,6 @@ onUnmounted(() => {
                   :disabled="isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right'"
                   class="vc-input"
                   :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-right' || state.positionMode === 'bottom-right' }"
-                  @keydown.stop="updatePositionInput('left', state.positionInputs.left)"
                 >
               </div>
               <div class="vc-input-group">
@@ -736,7 +740,6 @@ onUnmounted(() => {
                   :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right'"
                   class="vc-input"
                   :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'top-right' }"
-                  @keydown.stop="updatePositionInput('bottom', state.positionInputs.bottom)"
                 >
               </div>
               <div class="vc-input-group">
@@ -747,7 +750,6 @@ onUnmounted(() => {
                   :disabled="isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left'"
                   class="vc-input"
                   :class="{ 'vc-input-disabled': isControllerDisabled || state.positionMode === 'top-left' || state.positionMode === 'bottom-left' }"
-                  @keydown.stop="updatePositionInput('right', state.positionInputs.right)"
                 >
               </div>
             </div>
@@ -921,12 +923,11 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   bottom: 0;
   left: 50%;
   z-index: $vc-z-index + 1;
-  gap: 5px 10px;
+  gap: 4px 5px;
 
   // 桌面端默认样式 - 水平布局
   max-width: 95vw;
-  padding: 4px 12px;
-  overflow: hidden;
+  padding: 4px 6px;
   color: #333;
   pointer-events: auto;
   user-select: none;
@@ -942,37 +943,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   animation: streaming-glow 18s ease-in-out infinite;
   background-color: #EDF1FA;
   @include flex-center;
-
-  // 平板端适配 (768px - 1024px)
-  @media (width <= 1024px) and (width >= 769px) {
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    justify-content: center;
-    max-width: 90vw;
-    padding: 6px 10px;
-  }
-
-  // 移动端适配 (≤768px)
-  @media (width <= 768px) {
-    // 小屏幕时调整位置，避免遮挡内容
-    bottom: 10px;
-    flex-direction: column;
-    gap: 6px;
-    align-items: stretch;
-    max-width: 95vw;
-    max-height: 60vh;
-    padding: 8px;
-    overflow: hidden auto;
-    border-radius: 10px;
-  }
-
-  // 超小屏幕适配 (≤480px)
-  @media (width <= 480px) {
-    gap: 4px;
-    max-width: 98vw;
-    padding: 6px;
-    font-size: 12px;
-  }
 }
 
 /* 控制组样式 - 响应式布局 */
@@ -985,31 +955,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   &:last-child {
     margin-right: 0;
   }
-
-  // 平板端适配
-  @media (width <= 1024px) and (width >= 769px) {
-    gap: 4px;
-  }
-
-  // 移动端适配 - 垂直布局时调整
-  @media (width <= 768px) {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 4px 0;
-    border-bottom: 1px solid rgb(255 255 255 / 10%);
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 3px;
-    padding: 3px 0;
-  }
 }
 
 .vc-control-label {
@@ -1020,18 +965,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   &::after {
     content: ":";
   }
-
-  // 移动端适配 - 标签样式调整
-  @media (width <= 768px) {
-    min-width: 40px;
-    font-size: 12px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    min-width: 35px;
-    font-size: 12px;
-  }
 }
 
 /* 滑块样式 - 响应式适配 */
@@ -1039,17 +972,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   display: flex;
   gap: 8px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex: 1;
-    gap: 6px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 4px;
-  }
 }
 
 .vc-slider {
@@ -1060,24 +982,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   background: #D3E3FD;
   border-radius: 4px;
   color: $vc-text-primary;
-
-  // 平板端适配
-  @media (width <= 1024px) and (width >= 769px) {
-    width: 80px;
-  }
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex: 1;
-    width: 60px;
-    min-width: 50px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    width: 50px;
-    min-width: 40px;
-  }
 }
 
 .vc-slider::-webkit-slider-thumb {
@@ -1088,30 +992,12 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   background: #4f7cff;
   border: 2px solid white;
   border-radius: 50%;
-
-  // 移动端适配 - 增大触摸区域
-  @media (width <= 768px) {
-    width: 16px;
-    height: 16px;
-  }
 }
 
 .vc-slider-value {
   min-width: 20px;
   font-size: 12px;
   text-align: right;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    min-width: 25px;
-    font-size: 12px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    min-width: 20px;
-    font-size: 12px;
-  }
 }
 
 /* 按钮样式 - 响应式适配 */
@@ -1124,37 +1010,11 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   border: none;
   border-radius: 4px;
   transition: all 0.2s ease;
-
-  // 平板端适配
-  @media (width <= 1024px) and (width >= 769px) {
-    padding: 3px 6px;
-    font-size: 12px;
-  }
-
-  // 移动端适配 - 增大触摸区域
-  @media (width <= 768px) {
-    min-height: 32px;
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 6px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    min-height: 28px;
-    padding: 5px 8px;
-    font-size: 12px;
-  }
 }
 
 .vc-btn:hover {
   background: #F2F2F2;
   transform: translateY(-1px);
-
-  // 移动端禁用hover效果
-  @media (width <= 768px) {
-    transform: none;
-  }
 }
 
 .vc-btn.vc-active {
@@ -1182,18 +1042,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   display: flex;
   gap: 6px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex: 1;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 3px;
-  }
 }
 
 .vc-select {
@@ -1210,45 +1058,18 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   display: flex;
   gap: 6px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 2px;
-  }
 }
 
 .vc-input-row {
   display: flex;
   gap: 4px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex-wrap: wrap;
-    gap: 3px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 2px;
-  }
 }
 
 .vc-input-group {
   display: flex;
   gap: 2px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    gap: 1px;
-  }
 }
 
 .vc-input-label {
@@ -1258,18 +1079,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 
   &::after {
     content: ":";
-  }
-
-  // 移动端适配
-  @media (width <= 768px) {
-    min-width: 15px;
-    font-size: 12px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    min-width: 12px;
-    font-size: 12px;
   }
 }
 
@@ -1285,23 +1094,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 
   &:disabled {
     color: #BFC1C6;
-  }
-
-  // 移动端适配 - 增大触摸区域
-  @media (width <= 768px) {
-    width: 35px;
-    min-height: 24px;
-    padding: 2px 4px;
-    font-size: 12px;
-    border-radius: 4px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    width: 30px;
-    min-height: 20px;
-    padding: 1px 3px;
-    font-size: 12px;
   }
 }
 
@@ -1321,11 +1113,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 .vc-blend-controls {
   display: flex;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex: 1;
-  }
 }
 
 /* 控制按钮组样式 - 响应式适配 */
@@ -1333,28 +1120,12 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   display: flex;
   gap: 2px;
   align-items: center;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex-wrap: wrap;
-    gap: 3px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 2px;
-  }
 }
 
 .vc-size-controls {
   display: flex;
   gap: 3px;
   align-items: center;
-  // 移动端适配
-  @media (width <= 768px) {
-    flex: 1;
-    justify-content: flex-end;
-  }
 }
 
 .vc-size-inputs {
@@ -1362,19 +1133,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   gap: 4px;
   align-items: center;
   margin-right: 8px;
-
-  // 移动端适配
-  @media (width <= 768px) {
-    flex-wrap: wrap;
-    gap: 3px;
-    margin-right: 6px;
-  }
-
-  // 超小屏幕适配
-  @media (width <= 480px) {
-    gap: 2px;
-    margin-right: 4px;
-  }
 }
 
 /* 图标状态样式 */
@@ -1404,53 +1162,61 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   }
 }
 
-/* 流光动画效果 */
-@keyframes streaming-glow {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-
-  25% {
-    background-position: 100% 50%;
-  }
-
-  50% {
-    background-position: 200% 50%;
-  }
-
-  75% {
-    background-position: 300% 50%;
+/* 小屏幕适配 - 保持紧凑设计 */
+@media (max-width: 768px) {
+  .vc-controller-panel {
+    gap: 4px;
   }
 }
 
-@keyframes streaming-border {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 200% 50%;
+@media (max-width: 1200px) {
+  .vc-controller-panel {
+    width: 95vw;
+    flex-wrap: wrap;
   }
 }
-
-@keyframes scan-line {
-  0% {
-    left: -100%;
-    opacity: 0;
+/* 平板适配 - 紧凑水平布局 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .vc-controller-panel {
+    // 平板端更紧凑的水平布局
+    gap: 3px 6px;
+    max-width: 95vw;
+    padding: 4px 6px;
+    flex-wrap: wrap;
   }
 
-  50% {
-    opacity: 1;
+  .vc-control-group {
+    gap: 3px;
   }
 
-  100% {
-    left: 100%;
-    opacity: 0;
+  .vc-control-label {
+    font-size: 11px;
+  }
+
+  .vc-slider {
+    width: 70px;
+  }
+
+  .vc-slider-value {
+    font-size: 11px;
+  }
+
+  .vc-select {
+    width: 50px;
+    font-size: 11px;
+    padding: 1px 3px;
+  }
+
+  .vc-input {
+    max-width: 40px;
+    font-size: 11px;
+    padding: 0 3px;
+  }
+
+  .vc-btn.vc-btn-sm {
+    min-width: 20px;
+    min-height: 20px;
+    font-size: 12px;
   }
 }
 </style>

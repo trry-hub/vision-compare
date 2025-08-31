@@ -1,4 +1,5 @@
 // Background script for Vision Compare extension
+console.log('Vision Compare Service Worker started')
 
 // Chrome API 类型声明
 declare const chrome: {
@@ -13,7 +14,7 @@ declare const chrome: {
   }
   runtime: {
     onInstalled: {
-      addListener: (callback: () => void) => void
+      addListener: (callback: (details: { reason: string }) => void) => void
     }
   }
   action: {
@@ -25,25 +26,40 @@ declare const chrome: {
 
 // 处理快捷键命令
 chrome.commands.onCommand.addListener((command: string) => {
+  console.log('Command received:', command)
+
   // 向当前活动标签页的 content script 转发命令
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tabId = tabs?.[0]?.id
     if (!tabId) {
+      console.error('No active tab found')
       return
     }
 
-    chrome.tabs.sendMessage(tabId, { action: 'command', command }).catch(() => {
-      // Failed to send command to content script
+    console.log('Sending command to tab:', tabId)
+    chrome.tabs.sendMessage(tabId, { action: 'command', command }).catch((error) => {
+      console.error('Failed to send command to content script:', error)
     })
   })
 })
 
 // 扩展安装时的处理
-chrome.runtime.onInstalled.addListener(() => {
-  // Vision Compare extension installed
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('Vision Compare extension installed:', details.reason)
 })
 
 // 处理扩展图标点击（如果需要的话）
-chrome.action.onClicked?.addListener((_tab) => {
-  // Extension icon clicked
+if (chrome.action?.onClicked) {
+  chrome.action.onClicked.addListener((tab) => {
+    console.log('Extension icon clicked for tab:', tab.id)
+  })
+}
+
+// 全局错误处理
+self.addEventListener('error', (event) => {
+  console.error('Service Worker error:', event.error)
+})
+
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('Service Worker unhandled rejection:', event.reason)
 })
