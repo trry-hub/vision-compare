@@ -354,6 +354,8 @@ function toggleLock() {
       toggleFreeze()
     }
   }
+  // 保存当前状态
+  saveState()
 }
 
 // 贴边功能已移除，使用位置模式替代
@@ -868,7 +870,7 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 
   &:disabled,
   &.vc-input-disabled {
-    color: $vc-disabled-text;
+    color: #333;
     cursor: not-allowed;
     background: $vc-disabled-bg;
   }
@@ -923,74 +925,23 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 
   // 桌面端默认样式 - 水平布局
   max-width: 95vw;
-  padding: 8px 12px;
+  padding: 4px 12px;
   overflow: hidden;
-  color: $vc-text-primary;
+  color: #333;
   pointer-events: auto;
   user-select: none;
-
-  // 流光背景效果
-  background:
-    linear-gradient(
-      135deg,
-      rgb(15 23 42 / 95%) 0%,
-      rgb(30 41 59 / 95%) 25%,
-      rgb(51 65 85 / 95%) 50%,
-      rgb(30 41 59 / 95%) 75%,
-      rgb(15 23 42 / 95%) 100%
-    );
   background-clip: padding-box;
-  background-size: 400% 400%;
 
   // 流光边框
-  border: 1px solid transparent;
+  border: 1px solid #D3E3FD;
+  border-bottom: none;
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
-  box-shadow:
-    0 4px 20px rgb(0 0 0 / 40%),
-    0 0 40px rgb(79 124 255 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
   backdrop-filter: blur(20px);
   transform: translateX(-50%);
   animation: streaming-glow 18s ease-in-out infinite;
-  // overflow-x: auto;
+  background-color: #EDF1FA;
   @include flex-center;
-  // 外层流光边框效果
-  &::before {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    content: "";
-    background:
-      linear-gradient(
-        45deg,
-        #4f7cff 0%,
-        #7c3aed 25%,
-        #06b6d4 50%,
-        #10b981 75%,
-        #4f7cff 100%
-      );
-    background-size: 400% 400%;
-    animation: streaming-border 12s linear infinite;
-  }
-  // 内部光效
-  &::after {
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    content: "";
-    background:
-      linear-gradient(
-        90deg,
-        transparent 0%,
-        rgb(255 255 255 / 10%) 50%,
-        transparent 100%
-      );
-    animation: scan-line 9s ease-in-out infinite;
-  }
 
   // 平板端适配 (768px - 1024px)
   @media (width <= 1024px) and (width >= 769px) {
@@ -1003,7 +954,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 
   // 移动端适配 (≤768px)
   @media (width <= 768px) {
-
     // 小屏幕时调整位置，避免遮挡内容
     bottom: 10px;
     flex-direction: column;
@@ -1065,7 +1015,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 .vc-control-label {
   margin: 0;
   font-weight: 600;
-  color: $vc-text-secondary;
   white-space: nowrap;
 
   &::after {
@@ -1108,8 +1057,9 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   height: 3px;
   appearance: none;
   outline: none;
-  background: rgb(255 255 255 / 30%);
-  border-radius: 2px;
+  background: #D3E3FD;
+  border-radius: 4px;
+  color: $vc-text-primary;
 
   // 平板端适配
   @media (width <= 1024px) and (width >= 769px) {
@@ -1149,7 +1099,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 .vc-slider-value {
   min-width: 20px;
   font-size: 12px;
-  color: rgb(255 255 255 / 90%);
   text-align: right;
 
   // 移动端适配
@@ -1168,11 +1117,10 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 /* 按钮样式 - 响应式适配 */
 .vc-btn {
   padding: 2px;
-  color: white;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  background: rgb(255 255 255 / 15%);
+  background: #E3E6EF;
   border: none;
   border-radius: 4px;
   transition: all 0.2s ease;
@@ -1200,7 +1148,7 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 }
 
 .vc-btn:hover {
-  background: rgb(255 255 255 / 25%);
+  background: #F2F2F2;
   transform: translateY(-1px);
 
   // 移动端禁用hover效果
@@ -1210,7 +1158,7 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 }
 
 .vc-btn.vc-active {
-  color: white;
+  color: $vc-text-primary;
   background: #4f7cff;
 }
 
@@ -1221,7 +1169,7 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 }
 
 .vc-btn.vc-btn-danger {
-  color: white;
+  color: $vc-text-primary;
   background: #ff3b30;
 }
 
@@ -1253,9 +1201,8 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   padding: 2px 4px;
   font-size: 12px;
   line-height: 20px;
-  color: white;
   background: rgb(255 255 255 / 10%);
-  border: 1px solid rgb(255 255 255 / 30%);
+  border: 1px solid #D3E3FD;
   border-radius: 3px;
 }
 
@@ -1307,7 +1254,6 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 .vc-input-label {
   min-width: 20px;
   font-weight: 500;
-  color: rgb(255 255 255 / 70%);
   text-align: right;
 
   &::after {
@@ -1332,11 +1278,10 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   padding: 0 4px;
   font-size: 12px;
   line-height: 20px;
-  color: white;
   text-align: left;
   background: rgb(255 255 255 / 10%);
-  border: 1px solid rgb(255 255 255 / 30%);
-  border-radius: 2px;
+  border-radius: 4px;
+  border: 1px solid #D3E3FD;
 
   // 移动端适配 - 增大触摸区域
   @media (width <= 768px) {
