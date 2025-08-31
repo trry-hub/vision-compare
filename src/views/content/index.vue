@@ -1283,6 +1283,10 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   border-radius: 4px;
   border: 1px solid #D3E3FD;
 
+  &:disabled {
+    color: #BFC1C6;
+  }
+
   // 移动端适配 - 增大触摸区域
   @media (width <= 768px) {
     width: 35px;
@@ -1308,7 +1312,7 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
 }
 
 .vc-input-disabled {
-  color: rgb(255 255 255 / 30%);
+  color: #BFC1C6;
   cursor: not-allowed;
   background: rgb(255 255 255 / 5%);
 }
