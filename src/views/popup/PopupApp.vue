@@ -28,6 +28,8 @@ function handleFileChange(event: Event): void {
   if (file && file.type.startsWith('image/')) {
     uploadImage(file)
   }
+  // 重置文件输入框，确保可以重复选择同一文件
+  target.value = ''
 }
 
 // 处理拖拽

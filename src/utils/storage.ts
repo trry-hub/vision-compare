@@ -127,7 +127,7 @@ export const DEFAULT_STATE: VisionCompareState = {
   controllerExpanded: false,
   imageVisible: true,
   imageLocked: false,
-  imageFrozen: false,
+  imageFrozen: true,
   opacity: 50,
   position: { x: 0, y: 0 },
   rotation: 0,

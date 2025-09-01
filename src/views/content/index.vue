@@ -18,56 +18,62 @@ declare const chrome: {
 // 移除本地StorageManager定义，使用导入的版本
 
 // 状态管理 - 使用响应式状态替代 useStorage
-// 初始化状态
+// 初始化状态 - 始终使用默认值，不从普通存储恢复
 function initializeState() {
-  const savedState = StorageManager.getState()
   return {
-    isActive: savedState.isActive || false,
-    imageData: savedState.imageData || '',
+    isActive: false,
+    imageData: '',
     imageLoaded: false,
-    controllerVisible: savedState.controllerVisible !== undefined ? savedState.controllerVisible : true,
-    controllerExpanded: savedState.controllerExpanded || false,
-    imageVisible: savedState.imageVisible !== undefined ? savedState.imageVisible : true,
-    imageLocked: savedState.imageLocked || false,
-    imageFrozen: savedState.imageFrozen || false,
-    opacity: savedState.opacity || 50,
-    position: savedState.position || { x: 0, y: 0 },
+    controllerVisible: true,
+    controllerExpanded: false,
+    imageVisible: true,
+    imageLocked: false,
+    imageFrozen: true,
+    opacity: 50,
+    position: { x: 0, y: 0 },
     size: { width: 0, height: 0 },
     originalSize: { width: 0, height: 0 },
-    rotation: savedState.rotation || 0,
-    aspectRatioLocked: savedState.aspectRatioLocked !== undefined ? savedState.aspectRatioLocked : true,
+    rotation: 0,
+    aspectRatioLocked: true,
     isDragging: false,
     isResizing: false,
     dragOffset: { x: 0, y: 0 },
     // 位置控制模式
-    positionMode: savedState.positionMode || 'top-left',
-    positionInputs: savedState.positionInputs || { top: 0, left: 0, right: 0, bottom: 0 },
+    positionMode: 'top-left',
+    positionInputs: { top: 0, left: 0, right: 0, bottom: 0 },
     // 混合模式
-    blendMode: savedState.blendMode || 'normal',
+    blendMode: 'normal',
   }
 }
 
 const state = reactive(initializeState())
 
-// 状态变化时自动保存（排除临时状态）
+// 状态变化时自动保存（只有冻结状态才保存）
 function saveState() {
-  const stateToSave = {
-    isActive: state.isActive,
-    imageData: state.imageData,
-    controllerVisible: state.controllerVisible,
-    controllerExpanded: state.controllerExpanded,
-    imageVisible: state.imageVisible,
-    imageLocked: state.imageLocked,
-    imageFrozen: state.imageFrozen,
-    opacity: state.opacity,
-    position: state.position,
-    rotation: state.rotation,
-    aspectRatioLocked: state.aspectRatioLocked,
-    positionMode: state.positionMode,
-    positionInputs: state.positionInputs,
-    blendMode: state.blendMode,
+  // 只有在冻结状态下才保存状态
+  if (state.imageFrozen) {
+    const stateToSave = {
+      isActive: state.isActive,
+      imageData: state.imageData,
+      controllerVisible: state.controllerVisible,
+      controllerExpanded: state.controllerExpanded,
+      imageVisible: state.imageVisible,
+      imageLocked: state.imageLocked,
+      imageFrozen: state.imageFrozen,
+      opacity: state.opacity,
+      position: state.position,
+      rotation: state.rotation,
+      aspectRatioLocked: state.aspectRatioLocked,
+      positionMode: state.positionMode,
+      positionInputs: state.positionInputs,
+      blendMode: state.blendMode,
+    }
+    StorageManager.updateState(stateToSave)
   }
-  StorageManager.updateState(stateToSave)
+  else {
+    // 非冻结状态下，清除所有存储
+    StorageManager.clearAll()
+  }
 }
 
 // DOM 引用
@@ -84,13 +90,17 @@ function handleImageLoad() {
   state.originalSize.width = img.naturalWidth
   state.originalSize.height = img.naturalHeight
 
-  // 使用原始尺寸
-  state.size.width = img.naturalWidth
-  state.size.height = img.naturalHeight
+  // 如果不是冻结状态恢复，则使用原始尺寸和位置
+  if (!state.imageFrozen || state.size.width === 0 || state.size.height === 0) {
+    state.size.width = img.naturalWidth
+    state.size.height = img.naturalHeight
+  }
 
-  // 从左上角开始显示
-  state.position.x = 0
-  state.position.y = 0
+  // 如果不是冻结状态恢复，则从左上角开始显示
+  if (!state.imageFrozen) {
+    state.position.x = 0
+    state.position.y = 0
+  }
 
   state.imageLoaded = true
 
@@ -121,7 +131,10 @@ function checkImageLoad() {
 // 透明度调节
 function adjustOpacity(delta: number) {
   state.opacity = Math.max(0, Math.min(100, state.opacity + delta))
-  saveState()
+  // 只有冻结状态才保存
+  if (state.imageFrozen) {
+    saveState()
+  }
 }
 
 // 图片移动
@@ -131,7 +144,14 @@ function moveImage(dx: number, dy: number) {
   }
   state.position.x += dx
   state.position.y += dy
-  saveState()
+
+  // 同步更新输入框的值
+  updatePositionInputsFromPosition()
+
+  // 只有冻结状态才保存
+  if (state.imageFrozen) {
+    saveState()
+  }
 }
 
 // 图片缩放功能已集成到具体的按钮处理函数中
@@ -195,6 +215,37 @@ function updatePositionByMode() {
   }
 }
 
+// 根据当前位置反向计算输入框值
+function updatePositionInputsFromPosition() {
+  switch (state.positionMode) {
+    case 'top-left':
+      state.positionInputs.left = state.position.x
+      state.positionInputs.top = state.position.y
+      break
+    case 'top-right':
+      state.positionInputs.right = window.innerWidth - state.size.width - state.position.x
+      state.positionInputs.top = state.position.y
+      break
+    case 'bottom-left':
+      state.positionInputs.left = state.position.x
+      state.positionInputs.bottom = window.innerHeight - state.size.height - state.position.y
+      break
+    case 'bottom-right':
+      state.positionInputs.right = window.innerWidth - state.size.width - state.position.x
+      state.positionInputs.bottom = window.innerHeight - state.size.height - state.position.y
+      break
+    case 'center':
+      state.positionInputs.left = state.position.x - (window.innerWidth - state.size.width) / 2
+      state.positionInputs.top = state.position.y - (window.innerHeight - state.size.height) / 2
+      break
+    case 'free':
+      // 自由模式下，输入框显示绝对位置
+      state.positionInputs.left = state.position.x
+      state.positionInputs.top = state.position.y
+      break
+  }
+}
+
 // 处理尺寸输入
 function handleSizeInput(type: 'width' | 'height', value: number) {
   // 防止无效值
@@ -225,10 +276,9 @@ function handleSizeInput(type: 'width' | 'height', value: number) {
     }
   }
 
-  // 保存状态
-  saveState()
-  // 如果已冻结，更新存储
+  // 只有冻结状态才保存
   if (state.imageFrozen) {
+    saveState()
     updateFrozenState()
   }
 }
@@ -240,8 +290,10 @@ const blendModeOptions = BLEND_MODE_OPTIONS
 
 // 处理混合模式变化
 function handleBlendModeChange() {
-  // 保存状态
-  saveState()
+  // 只有冻结状态才保存
+  if (state.imageFrozen) {
+    saveState()
+  }
 }
 
 // 计算图片样式
@@ -266,9 +318,9 @@ watch(
     if (state.positionMode !== 'free') {
       updatePositionByMode()
     }
-    saveState()
-    // 如果是冻结状态，立即更新冻结存储
+    // 只有冻结状态才保存
     if (state.imageFrozen) {
+      saveState()
       updateFrozenState()
     }
   },
@@ -290,8 +342,9 @@ watch(
     state.positionMode,
   ],
   (_, oldValues) => {
-    // 只有在冻结状态下才同步到冻结存储
+    // 只有在冻结状态下才保存和同步
     if (state.imageFrozen && oldValues) {
+      saveState()
       updateFrozenState()
     }
   },
@@ -384,7 +437,10 @@ function handleKeyDown(e: KeyboardEvent) {
       break
     case 'v':
       state.imageVisible = !state.imageVisible
-      saveState()
+      // 只有冻结状态才保存
+      if (state.imageFrozen) {
+        saveState()
+      }
       break
     case 'arrowup':
       if (e.shiftKey) {
@@ -532,7 +588,13 @@ function restoreFrozenState() {
       state.positionMode = frozenState.positionMode || 'free'
       state.positionInputs = { ...frozenState.positionInputs }
       state.controllerVisible = true
-      state.imageLoaded = true
+      // 不要直接设置 imageLoaded = true，让图片重新加载
+      state.imageLoaded = false
+
+      // 确保图片正确加载
+      nextTick(() => {
+        checkImageLoad()
+      })
     }
   }
   catch (error) {
@@ -543,8 +605,16 @@ function restoreFrozenState() {
 // 生命周期
 onMounted(() => {
   try {
-    // 恢复冻结状态
-    restoreFrozenState()
+    // 清除所有普通状态存储，确保非冻结状态下从初始状态开始
+    const frozenState = StorageManager.getFrozenState()
+    if (frozenState && frozenState.url === window.location.href && frozenState.imageData) {
+      // 只有在有有效冻结状态时才恢复
+      restoreFrozenState()
+    }
+    else {
+      // 没有冻结状态时，清除所有存储，确保从初始状态开始
+      StorageManager.clearAll()
+    }
 
     // 添加消息监听器
     if (chrome?.runtime?.onMessage) {
@@ -669,7 +739,7 @@ onUnmounted(() => {
               :class="{ 'vc-active': state.aspectRatioLocked }"
               :disabled="isControllerDisabled"
               title="宽高比锁定"
-              @click="() => { state.aspectRatioLocked = !state.aspectRatioLocked; saveState() }"
+              @click="() => { state.aspectRatioLocked = !state.aspectRatioLocked; if (state.imageFrozen) saveState() }"
             >
               <QxsIcon icon="mdi:link-variant" :class="{ 'vc-icon-active': state.aspectRatioLocked }" />
             </button>
@@ -786,7 +856,7 @@ onUnmounted(() => {
             class="vc-btn vc-btn-sm"
             :class="{ 'vc-active': state.imageVisible }"
             title="显示/隐藏图片"
-            @click="() => { state.imageVisible = !state.imageVisible; saveState() }"
+            @click="() => { state.imageVisible = !state.imageVisible; if (state.imageFrozen) saveState() }"
           >
             <QxsIcon :icon="state.imageVisible ? 'mdi:eye' : 'mdi:eye-off'" :class="{ 'vc-icon-active': state.imageVisible }" />
           </button>
@@ -932,12 +1002,11 @@ $vc-disabled-text: rgb(255 255 255 / 30%);
   pointer-events: auto;
   user-select: none;
   background-clip: padding-box;
-
   // 流光边框
   border: 1px solid #D3E3FD;
   border-bottom: none;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
   backdrop-filter: blur(20px);
   transform: translateX(-50%);
   animation: streaming-glow 18s ease-in-out infinite;
