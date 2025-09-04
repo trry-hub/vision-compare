@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { QxsIcon } from '@qxs-bns/components/es/src/icon/index'
-import { useEventListener } from '@vueuse/core'
+import { useDebounceFn, useEventListener } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { BLEND_MODE_OPTIONS } from '../../utils/constants'
+import { clamp } from '../../utils/helpers'
 import { StorageManager } from '../../utils/storage'
 
 // Chrome API 类型声明
@@ -48,7 +49,7 @@ function initializeState() {
 
 const state = reactive(initializeState())
 
-// 状态变化时自动保存（只有冻结状态才保存）
+// 状态保存函数
 function saveState() {
   // 只有在冻结状态下才保存状态
   if (state.imageFrozen) {
@@ -75,6 +76,42 @@ function saveState() {
     StorageManager.clearAll()
   }
 }
+
+// 更新冻结状态到存储
+function updateFrozenState() {
+  if (!state.imageFrozen) {
+    // 如果不是冻结状态，清除冻结存储
+    StorageManager.setFrozenState(null)
+    return
+  }
+
+  const frozenState = {
+    imageData: state.imageData,
+    position: { ...state.position },
+    size: { ...state.size },
+    originalSize: { ...state.originalSize },
+    opacity: state.opacity,
+    rotation: state.rotation,
+    blendMode: state.blendMode,
+    positionMode: state.positionMode,
+    positionInputs: { ...state.positionInputs },
+    timestamp: Date.now(),
+    url: window.location.href,
+    isActive: state.isActive,
+    controllerVisible: state.controllerVisible,
+    controllerExpanded: state.controllerExpanded,
+    imageVisible: state.imageVisible,
+    imageLocked: state.imageLocked,
+    imageFrozen: state.imageFrozen,
+    aspectRatioLocked: state.aspectRatioLocked,
+  }
+
+  StorageManager.setFrozenState(frozenState)
+}
+
+// 使用 VueUse 的防抖函数
+const debouncedSaveState = useDebounceFn(saveState, 100)
+const debouncedUpdateFrozenState = useDebounceFn(updateFrozenState, 100)
 
 // DOM 引用
 const overlayRef = ref<HTMLElement>()
@@ -130,10 +167,23 @@ function checkImageLoad() {
 
 // 透明度调节
 function adjustOpacity(delta: number) {
-  state.opacity = Math.max(0, Math.min(100, state.opacity + delta))
-  // 只有冻结状态才保存
+  state.opacity = clamp(state.opacity + delta, 0, 100)
+  // 只有冻结状态才保存，使用防抖版本
   if (state.imageFrozen) {
-    saveState()
+    debouncedSaveState()
+  }
+}
+
+// 处理透明度滑块输入
+function handleOpacityInput(event: Event) {
+  const target = event.target as HTMLInputElement
+  const value = Number.parseInt(target.value, 10)
+  if (!Number.isNaN(value)) {
+    state.opacity = clamp(value, 0, 100)
+    // 使用防抖保存，避免拖拽时频繁保存
+    if (state.imageFrozen) {
+      debouncedSaveState()
+    }
   }
 }
 
@@ -148,9 +198,9 @@ function moveImage(dx: number, dy: number) {
   // 同步更新输入框的值
   updatePositionInputsFromPosition()
 
-  // 只有冻结状态才保存
+  // 只有冻结状态才保存，使用防抖版本
   if (state.imageFrozen) {
-    saveState()
+    debouncedSaveState()
   }
 }
 
@@ -276,10 +326,10 @@ function handleSizeInput(type: 'width' | 'height', value: number) {
     }
   }
 
-  // 只有冻结状态才保存
+  // 只有冻结状态才保存，使用防抖版本
   if (state.imageFrozen) {
-    saveState()
-    updateFrozenState()
+    debouncedSaveState()
+    debouncedUpdateFrozenState()
   }
 }
 
@@ -290,9 +340,9 @@ const blendModeOptions = BLEND_MODE_OPTIONS
 
 // 处理混合模式变化
 function handleBlendModeChange() {
-  // 只有冻结状态才保存
+  // 只有冻结状态才保存，使用防抖版本
   if (state.imageFrozen) {
-    saveState()
+    debouncedSaveState()
   }
 }
 
@@ -318,16 +368,17 @@ watch(
     if (state.positionMode !== 'free') {
       updatePositionByMode()
     }
-    // 只有冻结状态才保存
+    // 只有冻结状态才保存，使用防抖版本
     if (state.imageFrozen) {
-      saveState()
-      updateFrozenState()
+      debouncedSaveState()
+      debouncedUpdateFrozenState()
     }
   },
   { deep: true },
 )
 
 // 监听关键状态变化，确保冻结状态实时同步
+// 使用防抖来避免频繁的存储操作
 watch(
   () => [
     state.opacity,
@@ -344,44 +395,12 @@ watch(
   (_, oldValues) => {
     // 只有在冻结状态下才保存和同步
     if (state.imageFrozen && oldValues) {
-      saveState()
-      updateFrozenState()
+      debouncedSaveState()
+      debouncedUpdateFrozenState()
     }
   },
   { deep: true },
 )
-
-// 更新冻结状态到存储
-function updateFrozenState() {
-  if (!state.imageFrozen) {
-    // 如果不是冻结状态，清除冻结存储
-    StorageManager.setFrozenState(null)
-    return
-  }
-
-  const frozenState = {
-    imageData: state.imageData,
-    position: { ...state.position },
-    size: { ...state.size },
-    originalSize: { ...state.originalSize },
-    opacity: state.opacity,
-    rotation: state.rotation,
-    blendMode: state.blendMode,
-    positionMode: state.positionMode,
-    positionInputs: { ...state.positionInputs },
-    timestamp: Date.now(),
-    url: window.location.href,
-    isActive: state.isActive,
-    controllerVisible: state.controllerVisible,
-    controllerExpanded: state.controllerExpanded,
-    imageVisible: state.imageVisible,
-    imageLocked: state.imageLocked,
-    imageFrozen: state.imageFrozen,
-    aspectRatioLocked: state.aspectRatioLocked,
-  }
-
-  StorageManager.setFrozenState(frozenState)
-}
 
 // 冻结功能 - 保存当前状态到独立存储
 function toggleFreeze() {
@@ -396,7 +415,7 @@ function toggleFreeze() {
     updateFrozenState()
   }
 
-  // 保存当前状态
+  // 立即保存当前状态（重要操作）
   saveState()
 }
 
@@ -413,7 +432,7 @@ function toggleLock() {
       toggleFreeze()
     }
   }
-  // 保存当前状态
+  // 立即保存当前状态（重要操作）
   saveState()
 }
 
@@ -437,9 +456,9 @@ function handleKeyDown(e: KeyboardEvent) {
       break
     case 'v':
       state.imageVisible = !state.imageVisible
-      // 只有冻结状态才保存
+      // 只有冻结状态才保存，使用防抖版本
       if (state.imageFrozen) {
-        saveState()
+        debouncedSaveState()
       }
       break
     case 'arrowup':
@@ -631,6 +650,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   try {
+    // VueUse 的防抖函数会自动清理，无需手动管理定时器
+
+    // 清理消息监听器
     if (chrome?.runtime?.onMessage) {
       chrome.runtime.onMessage.removeListener(handleMessage)
     }
@@ -669,12 +691,13 @@ onUnmounted(() => {
         <label class="vc-control-label">透明度</label>
         <div class="vc-slider-container">
           <input
-            v-model="state.opacity"
+            :value="state.opacity"
             type="range"
             min="0"
             max="100"
             class="vc-slider"
             :disabled="isControllerDisabled"
+            @input="handleOpacityInput"
           >
           <span class="vc-slider-value">{{ state.opacity }}%</span>
         </div>
@@ -739,7 +762,7 @@ onUnmounted(() => {
               :class="{ 'vc-active': state.aspectRatioLocked }"
               :disabled="isControllerDisabled"
               title="宽高比锁定"
-              @click="() => { state.aspectRatioLocked = !state.aspectRatioLocked; if (state.imageFrozen) saveState() }"
+              @click="() => { state.aspectRatioLocked = !state.aspectRatioLocked; if (state.imageFrozen) debouncedSaveState() }"
             >
               <QxsIcon icon="mdi:link-variant" :class="{ 'vc-icon-active': state.aspectRatioLocked }" />
             </button>
@@ -856,7 +879,7 @@ onUnmounted(() => {
             class="vc-btn vc-btn-sm"
             :class="{ 'vc-active': state.imageVisible }"
             title="显示/隐藏图片"
-            @click="() => { state.imageVisible = !state.imageVisible; if (state.imageFrozen) saveState() }"
+            @click="() => { state.imageVisible = !state.imageVisible; if (state.imageFrozen) debouncedSaveState() }"
           >
             <QxsIcon :icon="state.imageVisible ? 'mdi:eye' : 'mdi:eye-off'" :class="{ 'vc-icon-active': state.imageVisible }" />
           </button>
