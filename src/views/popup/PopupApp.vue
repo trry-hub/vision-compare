@@ -97,10 +97,10 @@ async function uploadImage(file: File): Promise<void> {
       throw new Error('本地文件页面不支持扩展功能，请在网页中使用')
     }
 
-    // 等待 content script 加载（它会通过 manifest.json 自动注入）
+    // 等待 content script 加载（通过 manifest.json 自动注入到 http/https 页面）
     let contentScriptReady = false
     let retries = 0
-    const maxRetries = 15 // 增加重试次数
+    const maxRetries = 15
 
     while (retries < maxRetries && !contentScriptReady) {
       try {
@@ -112,9 +112,8 @@ async function uploadImage(file: File): Promise<void> {
       }
       catch (e) {
         console.log('Content script 未就绪，等待中...', e)
-        // Content script 还未加载，等待一下
         retries++
-        await new Promise(resolve => setTimeout(resolve, 500)) // 增加等待时间
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
 

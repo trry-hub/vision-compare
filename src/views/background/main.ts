@@ -9,7 +9,7 @@ declare const chrome: {
     }
   }
   tabs: {
-    query: (queryInfo: { active?: boolean, currentWindow?: boolean }, callback: (tabs: Array<{ id?: number }>) => void) => void
+    query: (queryInfo: { active?: boolean, currentWindow?: boolean }, callback: (tabs: Array<{ id?: number, url?: string }>) => void) => void
     sendMessage: (tabId: number, message: any) => Promise<any>
   }
   runtime: {
@@ -30,9 +30,16 @@ chrome.commands.onCommand.addListener((command: string) => {
 
   // 向当前活动标签页的 content script 转发命令
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tabId = tabs?.[0]?.id
+    const tab = tabs?.[0]
+    const tabId = tab?.id
     if (!tabId) {
       console.error('No active tab found')
+      return
+    }
+
+    // 检查页面是否支持（content script 只会在 http/https 页面自动注入）
+    if (!tab.url || (!tab.url.startsWith('http://') && !tab.url.startsWith('https://'))) {
+      console.error('Page not supported for extension')
       return
     }
 

@@ -15,8 +15,6 @@ const dynamicManifest = {
   permissions: [
     'activeTab',
     'storage',
-    'scripting',
-    'tabs',
   ],
   action: {
     default_popup: 'src/views/popup/popup.html',
@@ -46,7 +44,7 @@ const dynamicManifest = {
   },
   content_scripts: [
     {
-      matches: ['<all_urls>'],
+      matches: ['http://*/*', 'https://*/*'],
       js: ['src/views/content/main.ts'],
       run_at: 'document_end',
       all_frames: false,
@@ -61,7 +59,7 @@ const dynamicManifest = {
   web_accessible_resources: [
     {
       resources: ['public/icons/*.svg'],
-      matches: ['<all_urls>'],
+      matches: ['http://*/*', 'https://*/*'],
     },
   ],
 }
