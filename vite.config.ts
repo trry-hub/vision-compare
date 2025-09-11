@@ -14,7 +14,6 @@ const dynamicManifest = {
   description: packageJson.description || '前端页面与设计稿像素级对比，提升还原率；支持覆盖、差异高亮、分屏对比、快捷键与持久化',
   permissions: [
     'activeTab',
-    'storage',
   ],
   action: {
     default_popup: 'src/views/popup/popup.html',
@@ -51,14 +50,14 @@ const dynamicManifest = {
     },
   ],
   icons: {
-    16: 'public/icons/icon16.png',
-    32: 'public/icons/icon32.png',
-    48: 'public/icons/icon48.png',
-    128: 'public/icons/icon128.png',
+    16: 'icons/icon16.png',
+    32: 'icons/icon32.png',
+    48: 'icons/icon48.png',
+    128: 'icons/icon128.png',
   },
   web_accessible_resources: [
     {
-      resources: ['public/icons/*.svg'],
+      resources: ['icons/*.png'],
       matches: ['http://*/*', 'https://*/*'],
     },
   ],
